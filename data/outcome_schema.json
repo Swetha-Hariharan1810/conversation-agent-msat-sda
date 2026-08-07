@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Member satisfaction survey call outcome",
+  "type": "object",
+  "required": ["call_outcome"],
+  "properties": {
+    "call_outcome": {
+      "type": "object",
+      "required": ["status", "disposition", "answers", "missing_questions"],
+      "properties": {
+        "status": { "enum": ["complete", "incomplete"] },
+        "disposition": {
+          "description": "How the call ended. 'surveyed' is the only one that carries a full set of answers; the rest say why it does not.",
+          "enum": [
+            "surveyed",
+            "partially_surveyed",
+            "uninterested",
+            "reschedule_requested",
+            "representative_requested",
+            "safeguarding_handoff",
+            "voicemail_left",
+            "policyholder_unavailable",
+            "wrong_number",
+            "do_not_call",
+            "ended_early"
+          ]
+        },
+        "reason": { "type": "string" },
+        "workflow_subtype": { "type": "string" },
+        "gating_facts": {
+          "description": "Work-item values that decided which questions this member was asked — the risk tier, as supplied. Reported so a reader can tell why a question was or was not put.",
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "answers": {
+          "description": "Question slot -> the member's answer. Choice answers are one of the option values declared for the slot; free-text answers are the member's own words.",
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "declined_questions": {
+          "description": "Questions that were put and that the member would not answer. Never a reason to end the call.",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "skipped_questions": {
+          "description": "Questions the script did not apply to this member, with the condition that ruled them out.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["slot", "reason"],
+            "properties": {
+              "slot": { "type": "string" },
+              "node": { "type": "string" },
+              "reason": { "type": "string" }
+            }
+          }
+        },
+        "missing_questions": {
+          "description": "Applicable questions that were never answered — because the call ended first, not because the member declined.",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "visited_nodes": {
+          "description": "Script node ids, in the order the agent acted on them.",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "open_intents": {
+          "description": "Anything the member raised that was never resolved.",
+          "type": "array",
+          "items": { "type": "object" }
+        }
+      }
+    }
+  }
+}

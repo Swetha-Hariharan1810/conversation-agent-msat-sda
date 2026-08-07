@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Member satisfaction survey call input",
+  "description": "Work item handed to the agent. The policyholder's name and risk tier are the only facts the agent brings to the call; everything else it says comes from the script and everything else it records comes from the member.",
+  "type": "object",
+  "required": ["workflow_subtype", "policyholder"],
+  "properties": {
+    "workflow_subtype": {
+      "type": "string",
+      "default": "MEMBER_SATISFACTION_SURVEY"
+    },
+    "call_context": {
+      "type": "object",
+      "properties": {
+        "call_id": { "type": "string" },
+        "phone_number": { "type": "string" },
+        "attempt": { "type": "integer" },
+        "language": { "type": "string" }
+      }
+    },
+    "policyholder": {
+      "type": "object",
+      "description": "Who we are calling. The risk tier decides whether question 5 is asked and is never inferred from anything the member says.",
+      "required": ["risk_tier"],
+      "properties": {
+        "policy_number": { "type": "string" },
+        "full_name": { "type": "string" },
+        "name": { "type": "string" },
+        "first_name": { "type": "string" },
+        "last_name": { "type": "string" },
+        "risk_tier": {
+          "type": "string",
+          "description": "high = question 5 is asked; rising = it is skipped. Any other value, or none at all, and the question is skipped and reported as skipped.",
+          "enum": ["high", "rising"]
+        }
+      }
+    },
+    "program": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "risk_tier": { "type": "string" },
+        "enrolled_date": { "type": "string" },
+        "completed_date": { "type": "string" }
+      }
+    }
+  }
+}

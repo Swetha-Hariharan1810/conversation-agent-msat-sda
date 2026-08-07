@@ -1,0 +1,209 @@
+{
+  "_readme": [
+    "Transcription of docs/Allianz Member Satisfaction Survey_Scripting_Final.pdf.",
+    "",
+    "This is the SOURCE OF TRUTH FOR WORDING and nothing else: no slot names, no",
+    "conditions, no policy. Those live in slot_map.json, and scripts/compile_script.py",
+    "joins the two into data/msat_spec.json.",
+    "",
+    "Every 'text' here is the document's wording verbatim, and",
+    "tests/test_script_sources.py reads the PDF's own text layer and fails if any of",
+    "it has drifted. Whitespace is collapsed before comparison; nothing else is.",
+    "",
+    "role:  agent     spoken by the agent",
+    "       document  printed in the script but never spoken (routing rules, key)",
+    "node ids are stable identifiers for the transcribed turns. They appear in the",
+    "call outcome's visited_nodes, so renaming one is a breaking change."
+  ],
+  "source": {
+    "document": "docs/Allianz Member Satisfaction Survey_Scripting_Final.pdf",
+    "title": "Allianz Member Satisfaction Survey (MSAT)",
+    "program": "Sagility Smart Step program offered by Allianz Life Insurance company",
+    "pages": 2
+  },
+  "turns": [
+    {
+      "node": "vm.01",
+      "section": "Voicemail",
+      "role": "agent",
+      "kind": "voicemail",
+      "text": "Hello, this is the Sagility Smart Step Program offered by Allianz Life Insurance company . We are calling everyone who participated in the Smart Step program and would like to hear your feedback. Please call us back at 1-888-855-7837 between 8am and 8pm Eastern Time. You may also go online to take the survey at allianz.sagilitysmartsteps.com. That's a-l-l-i-a-n-z dot s-a-g-i-l-i-t-y-s-m-a-r-t-s-t-e-p-s dot com. Thank you."
+    },
+    {
+      "node": "in.01",
+      "section": "Introduction Scripting",
+      "role": "agent",
+      "kind": "intro",
+      "text": "Hello, this is Ida, your virtual assistant from the Sagility Smart Step program offered by Allianz Life Insurance company. May I speak to [policyholder's full name]?"
+    },
+    {
+      "node": "in.02",
+      "section": "Introduction Scripting",
+      "role": "agent",
+      "kind": "consent",
+      "text": "Thank you for taking my call. We're calling everyone who participated in the Smart Step program to get your feedback and make the program even better. Do you have a couple of minutes for me to ask you a few questions?"
+    },
+    {
+      "node": "in.03",
+      "section": "Introduction Scripting",
+      "role": "agent",
+      "kind": "reschedule_offer",
+      "text": "Would you like to reschedule the call for a better time?"
+    },
+    {
+      "node": "in.04",
+      "section": "Introduction Scripting",
+      "role": "agent",
+      "kind": "reschedule_transfer",
+      "text": "Please hold on and I will get you to someone to reschedule."
+    },
+    {
+      "node": "in.05",
+      "section": "Introduction Scripting",
+      "role": "agent",
+      "kind": "uninterested_close",
+      "text": "Thank you for your time."
+    },
+    {
+      "node": "sv.00",
+      "section": "Survey Questions",
+      "role": "agent",
+      "kind": "survey_intro",
+      "text": "Great. Let's get started. Please tell us about your experiences with the Smart Step Aging in Place service by completing a short satisfaction survey."
+    },
+    {
+      "node": "sv.01",
+      "section": "Survey Questions",
+      "role": "agent",
+      "kind": "ask",
+      "number": "1",
+      "text": "Were you able to review any of the program resources such as action plans, articles, videos, or websites?",
+      "options": ["Yes", "No"]
+    },
+    {
+      "node": "sv.01a",
+      "section": "Survey Questions",
+      "role": "agent",
+      "kind": "ask",
+      "number": "1a",
+      "text": "How helpful were the resources, articles, or websites in making at least one lifestyle change while participating in the program?",
+      "options": [
+        "Extremely Helpful",
+        "Somewhat Helpful",
+        "Not Very Helpful",
+        "Definitely Not Helpful"
+      ]
+    },
+    {
+      "node": "sv.01b",
+      "section": "Survey Questions",
+      "role": "agent",
+      "kind": "ask",
+      "number": "1b",
+      "text": "How helpful were the resources, articles, or websites in making at least one lifestyle change while participating in the program?",
+      "options": [
+        "No time to review the resources",
+        "Not interested in the available resources",
+        "Program website (Smart Step portal) was not working",
+        "Other reason"
+      ],
+      "source_note": [
+        "The document prints question 1b with question 1a's stem, but 1b's four answer",
+        "options are reasons for NOT reviewing the resources. A helpfulness question",
+        "cannot be answered with 'No time to review the resources', so the printed stem",
+        "is a copy-paste from 1a rather than the question the branch means.",
+        "",
+        "The verbatim text is kept here for audit. The spoken question comes from the",
+        "goal in slot_map.json, which asks for the reason. Asking the printed stem",
+        "would record a helpfulness rating from a member who just said they never",
+        "opened the resources.",
+        "",
+        "This needs a decision from the business, and is the one place where the agent",
+        "deliberately does not say what the document prints."
+      ]
+    },
+    {
+      "node": "sv.02",
+      "section": "Survey Questions",
+      "role": "agent",
+      "kind": "ask",
+      "number": "2",
+      "text": "We value your feedback. What changes or additions would you like to see to improve the program? If you do not have feedback, you can answer no or none."
+    },
+    {
+      "node": "sv.03",
+      "section": "Survey Questions",
+      "role": "agent",
+      "kind": "ask",
+      "number": "3",
+      "text": "Please tell us what you liked most about the program. If you do not have feedback, you can answer no or none."
+    },
+    {
+      "node": "sv.04",
+      "section": "Survey Questions",
+      "role": "agent",
+      "kind": "ask",
+      "number": "4",
+      "text": "Based on your experience with the Smart Step Aging in Place Program offered by Allianz, would you recommend our program to people you know?",
+      "options": ["Yes", "No"]
+    },
+    {
+      "node": "rule.01",
+      "section": "Survey Questions",
+      "role": "document",
+      "kind": "rule",
+      "text": "If policyholder is high risk, ask question 5. If policyholder is rising risk skip to question 6."
+    },
+    {
+      "node": "sv.05",
+      "section": "Survey Questions",
+      "role": "agent",
+      "kind": "ask",
+      "number": "5",
+      "text": "Were program staff helpful and knowledgeable about the program and in guiding you through your action plan?",
+      "options": ["Yes", "No"]
+    },
+    {
+      "node": "sv.06",
+      "section": "Survey Questions",
+      "role": "agent",
+      "kind": "ask",
+      "number": "6",
+      "text": "How would you rate your experience with the program overall?",
+      "options": [
+        "Extremely Helpful",
+        "Somewhat Helpful",
+        "Not Very Helpful",
+        "Definitely Not Helpful"
+      ]
+    },
+    {
+      "node": "cl.01",
+      "section": "Closing",
+      "role": "agent",
+      "kind": "close",
+      "text": "This is the end of the survey. Thank you very much for your time and assistance. We appreciate the information and feedback you have provided us about the Smart Step program. Goodbye."
+    },
+    {
+      "node": "key.01",
+      "section": "Key",
+      "role": "document",
+      "kind": "key",
+      "text": "Rules based on the risk and responses."
+    },
+    {
+      "node": "key.02",
+      "section": "Key",
+      "role": "document",
+      "kind": "key",
+      "text": "Only a high risk policyholder question."
+    },
+    {
+      "node": "key.03",
+      "section": "Key",
+      "role": "document",
+      "kind": "key",
+      "text": "Pulls from database."
+    }
+  ]
+}

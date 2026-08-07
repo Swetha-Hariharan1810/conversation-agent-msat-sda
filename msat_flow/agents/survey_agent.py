@@ -1,0 +1,610 @@
+"""MsatSurveyAgent — the outbound member-satisfaction caller.
+
+One turn of this agent is: read what the member said, record whatever it
+contained, then let the planner decide the next move from what is still
+outstanding. There is no script pointer and no keyword routing, so a member is
+free to answer two questions at once, take a question as a cue to tell a story,
+or correct an answer four questions later.
+
+The survey-specific judgement lives in two places, and both are deliberate:
+
+* **A question the member will not answer is recorded as declined, and the call
+  goes on.** There is no escalation path for it. Handing a satisfaction call to a
+  human because somebody would rather not rate the staff serves nobody, and the
+  gap is reported honestly instead.
+* **The gates latch only where they were asked.** Identity and consent are read
+  from the turn that put them and no other, so a "yes" meaning "yes, speaking"
+  can never be recorded as consent to be surveyed. The cost is that a member who
+  volunteers both at once is asked anyway; that is much cheaper than surveying
+  someone who never agreed to it.
+"""
+
+from __future__ import annotations
+
+from ..core import guards
+from ..core.agent import BaseAgent
+from ..llm.extractor import extract
+from ..llm.response_generator import generate
+from ..llm.schema import EventType, IdentityDetail, TurnDecision
+from ..planner import (
+    CONSENT_DECLINED,
+    CONSENT_GRANTED,
+    FINAL_ACTIONS,
+    IDENTITY_CONFIRMED,
+    IDENTITY_UNAVAILABLE,
+    IDENTITY_WRONG_NUMBER,
+    PRESERVE_AWAITING,
+    QUESTION_ACTIONS,
+    TRANSFER_ACTIONS,
+    Action,
+    Plan,
+    applies,
+    outstanding_questions,
+    plan_next,
+    skipped_questions,
+)
+from ..script.spec import SurveySpec, load_spec
+from ..state import SurveyState
+
+# Phase is reporting only — the planner never reads it. It exists so a call can
+# be monitored and so the outcome says where it got to.
+_ACTION_PHASE = {
+    Action.HANDOFF_SAFEGUARDING: "closing",
+    Action.HANDOFF_REPRESENTATIVE: "closing",
+    Action.LEAVE_VOICEMAIL: "opening",
+    Action.ACKNOWLEDGE_HOLD: "survey",
+    Action.GREET: "identity",
+    Action.END_UNAVAILABLE: "closing",
+    Action.END_WRONG_NUMBER: "closing",
+    Action.ASK_CONSENT: "consent",
+    Action.OFFER_RESCHEDULE: "consent",
+    Action.TRANSFER_RESCHEDULE: "closing",
+    Action.ASK_RESCHEDULE_DATETIME: "consent",
+    Action.CLOSE_RESCHEDULE: "closing",
+    Action.END_UNINTERESTED: "closing",
+    Action.ASK: "survey",
+    Action.CLOSE: "closing",
+}
+
+# How each ending is reported. Every way the call can stop has one, so a batch of
+# results never contains a silent blank.
+_ACTION_DISPOSITION = {
+    Action.HANDOFF_SAFEGUARDING: "safeguarding_handoff",
+    Action.HANDOFF_REPRESENTATIVE: "representative_requested",
+    Action.LEAVE_VOICEMAIL: "voicemail_left",
+    Action.END_UNAVAILABLE: "policyholder_unavailable",
+    Action.END_WRONG_NUMBER: "wrong_number",
+    Action.TRANSFER_RESCHEDULE: "reschedule_requested",
+    Action.CLOSE_RESCHEDULE: "reschedule_requested",
+    Action.END_UNINTERESTED: "uninterested",
+}
+
+# Why the call was handed to a human, for the transfer event a human reads.
+_TRANSFER_REASON = {
+    Action.HANDOFF_SAFEGUARDING: "member_may_be_at_risk",
+    Action.HANDOFF_REPRESENTATIVE: "member_asked_for_a_representative",
+    Action.TRANSFER_RESCHEDULE: "member_requested_reschedule",
+}
+
+_DO_NOT_CALL = "do_not_call"
+_ENDED_EARLY = "ended_early"
+_SURVEYED = "surveyed"
+_PARTIAL = "partially_surveyed"
+
+# Guard outcomes the planner turns into a spoken action, rather than the guard
+# speaking for itself. Keeping the wording on that side is what lets the pause
+# acknowledgement be said in the agent's own words while the two handoffs stay
+# exactly as approved.
+_PLANNED_GUARDS = frozenset(
+    {guards.SAFEGUARDING, guards.REPRESENTATIVE_REQUEST, guards.VOICEMAIL, guards.HOLD}
+)
+
+
+def _last_message(messages: list, role: str) -> str:
+    wanted = {"user": {"user", "human"}, "assistant": {"assistant", "ai"}}.get(role, {role})
+    for message in reversed(messages or []):
+        kind = message.get("role") if isinstance(message, dict) else getattr(message, "type", "")
+        if kind in wanted:
+            content = (
+                message.get("content", "") if isinstance(message, dict) else getattr(message, "content", "")
+            )
+            if content:
+                return str(content)
+    return ""
+
+
+class MsatSurveyAgent(BaseAgent):
+    AGENT_NAME = "msat_survey_agent"
+
+    def __init__(self, client=None, spec: SurveySpec | None = None):
+        super().__init__()
+        self.client = client
+        self.spec = spec or load_spec()
+
+    # ── the three gates ──────────────────────────────────────────────────
+
+    @property
+    def _identity_slot(self) -> str:
+        return self.spec.of_kind("intro").slot
+
+    @property
+    def _consent_slot(self) -> str:
+        return self.spec.of_kind("consent").slot
+
+    @property
+    def _reschedule_slot(self) -> str:
+        return self.spec.of_kind("reschedule_offer").slot
+
+    @property
+    def _gate_slots(self) -> frozenset[str]:
+        return frozenset({self._identity_slot, self._consent_slot, self._reschedule_slot})
+
+    def _gate_limit(self, slot: str) -> int:
+        policy = self.spec.policy
+        if slot == self._identity_slot:
+            return policy.max_identity_asks
+        if slot in (self._consent_slot, self._reschedule_slot):
+            return policy.max_consent_asks
+        return policy.max_asks_per_slot
+
+    # ── turn ─────────────────────────────────────────────────────────────
+
+    async def run(self, state: SurveyState) -> dict:  # noqa: C901
+        member_text = _last_message(state.get("messages", []), "user")
+        last_agent = _last_message(state.get("messages", []), "assistant")
+
+        # First turn of the call: nothing to read, just open.
+        if not member_text:
+            return await self._act(state, self._plan(state), updates={})
+
+        guard = self.check_guards(state, member_text)
+        # Safety, a request for a person, an answering machine and a pause are
+        # all turned into planned actions, so their wording comes from the spec
+        # and the turn is recorded like any other. Crucially, the first two
+        # happen BEFORE the turn is read as an answer: a member who is not safe
+        # must never wait on a provider call, and must never have what they said
+        # filed against question 3.
+        if guard.kind in _PLANNED_GUARDS:
+            return await self._act(state, self._plan(state, guard=guard.kind), updates=dict(guard.update))
+        if guard.kind == _DO_NOT_CALL:
+            return self._end(
+                state,
+                self.spec.policy.line(_DO_NOT_CALL),
+                disposition=_DO_NOT_CALL,
+                reason="member asked not to be called again",
+            )
+        if guard.kind == guards.HOLD_EXHAUSTED:
+            return self._end(
+                state,
+                self.spec.policy.line("unable_to_continue"),
+                disposition=_ENDED_EARLY,
+                reason="member never came back to the call",
+                updates=guard.update,
+            )
+        if guard.handled:
+            return {**self.persisted(), **guard.update}
+
+        awaiting = state.get("awaiting_slot", "")
+        try:
+            decision = await self._read(state, member_text, last_agent)
+        except Exception as exc:  # provider outage, rate limit past its retries
+            # Never mistake a failure to READ the turn for the member being
+            # unclear: that would burn a retry against someone who answered
+            # perfectly. End the call, keep every answer already recorded, and
+            # say why.
+            return self._end(
+                state,
+                self.spec.policy.line("unable_to_continue"),
+                disposition=_ENDED_EARLY,
+                reason=f"could not process the turn: {exc}",
+            )
+        # The wording guards catch what a member says plainly. These catch what
+        # they say obliquely — "I don't see much point any more" trips no
+        # pattern — and are the reason the extractor is asked to lean towards
+        # raising a concern rather than away from it.
+        if decision.safeguarding_concern:
+            return await self._act(state, self._plan(state, guard=guards.SAFEGUARDING), updates={})
+        if decision.asks_for_representative:
+            return await self._act(state, self._plan(state, guard=guards.REPRESENTATIVE_REQUEST), updates={})
+
+        self.capture_and_triage(decision)
+
+        updates: dict = {"ambiguous_counts": self.clear_hold_counter(state)}
+
+        # Corrections win over new answers for the same question.
+        rejected: dict[str, str] = {}
+        for slot, raw in (decision.corrections or {}).items():
+            if not self._may_record(slot, awaiting):
+                continue
+            accepted, reason = self.record(slot, raw)
+            if accepted:
+                self.resolve_intents(target=slot)
+            else:
+                rejected[slot] = reason
+
+        recordable = {
+            slot: raw
+            for slot, raw in (decision.values or {}).items()
+            if self._may_record(slot, awaiting) and slot not in (decision.corrections or {})
+        }
+        _, more_rejected = self.record_many(recordable)
+        rejected.update(more_rejected)
+
+        # An answer whose gating question has since changed does not belong to
+        # this member's survey any more. Dropping it here is what keeps a
+        # corrected "actually, I never looked at them" from leaving a
+        # helpfulness rating behind on a question that is now skipped.
+        self._drop_inapplicable(state)
+
+        updates.update(self._gate_updates(state, decision))
+
+        if awaiting == "reschedule_datetime" and member_text.strip() and not state.get("reschedule_datetime"):
+            updates["reschedule_datetime"] = member_text.strip()
+
+        # The member would rather not answer what was just asked. That is an
+        # answer about the survey, not a failure of the call.
+        declined = list(state.get("declined") or [])
+        if decision.declines_question or decision.event_type is EventType.DECLINED:
+            if awaiting and awaiting not in self._gate_slots and awaiting not in declined:
+                declined.append(awaiting)
+                updates["declined"] = declined
+
+        retry = self._retry_target(awaiting, decision, rejected, declined)
+        if retry:
+            slot, reason = retry
+            over = self.slot(slot).attempt_count >= self._gate_limit(slot)
+            if over and slot in self._gate_slots:
+                return self._gate_gave_up(state, slot, updates)
+            if over:
+                if slot not in declined:
+                    declined.append(slot)
+                updates["declined"] = declined
+                retry = None
+
+        plan = self._plan(state, updates=updates, declined=declined)
+
+        # Backstop: a question that has been PUT too many times without ever
+        # being answered stops going out. The retry counter cannot see this case
+        # — the member replies every time, just never to this question.
+        ask_counts = dict(state.get("ask_counts") or {})
+        for _ in range(len(self.spec.slots) + 1):
+            slot = plan.slot
+            if plan.action not in QUESTION_ACTIONS or not slot or self.answered(slot):
+                break
+            if ask_counts.get(slot, 0) < self._gate_limit(slot):
+                break
+            if slot in self._gate_slots:
+                return self._gate_gave_up(state, slot, updates)
+            if slot not in declined:
+                declined.append(slot)
+            updates["declined"] = declined
+            plan = self._plan(state, updates=updates, declined=declined)
+
+        # Only re-ask if the planner still wants that question. A correction can
+        # re-open an earlier branch — answering "actually I never opened them"
+        # replaces the helpfulness question with the reason question — and
+        # re-asking what we happened to be waiting on would talk over it.
+        if retry and plan.slot == retry[0]:
+            slot, reason = retry
+            return await self._act(
+                state,
+                plan,
+                updates=updates,
+                last_member_message=member_text,
+                retry_slot=slot,
+                retry_reason=reason,
+            )
+        return await self._act(state, plan, updates=updates, last_member_message=member_text)
+
+    # ── reading the turn ─────────────────────────────────────────────────
+
+    async def _read(self, state: SurveyState, member_text: str, last_agent: str) -> TurnDecision:
+        # Date/time is free text — skip the extractor and capture it directly.
+        if state.get("awaiting_slot") == "reschedule_datetime":
+            return TurnDecision()
+        if self.client is None:
+            return self._read_offline(state, member_text)
+        asked = tuple(filter(None, [state.get("awaiting_slot", "")]))
+        return await extract(
+            self.client,
+            self.spec,
+            asked_slots=asked,
+            last_agent_message=last_agent,
+            member_text=member_text,
+        )
+
+    @staticmethod
+    def _read_offline(state: SurveyState, member_text: str) -> TurnDecision:
+        """Read a turn with no model, using the normalisers alone.
+
+        The member's words are offered to the question we are actually waiting
+        on, and to nothing else. The normaliser then accepts them or does not —
+        so "extremely helpful" lands and "it was alright" does not, exactly as
+        on a live call.
+
+        This is deliberately literal. It cannot notice an answer given out of
+        turn, a correction, or a question asked back, so an offline call walks
+        the script in order and nothing more. It exists so the flow can be
+        driven end to end without a provider, not to stand in for one.
+        """
+        awaiting = state.get("awaiting_slot") or ""
+        if not awaiting or not (member_text or "").strip():
+            return TurnDecision()
+        return TurnDecision(values={awaiting: member_text})
+
+    def _may_record(self, slot: str, awaiting: str) -> bool:
+        """Whether this turn is allowed to settle ``slot``.
+
+        Survey answers may arrive at any point — that is the whole design. The
+        three gates may not: they are only read from the turn that asked them,
+        so "yes, speaking" cannot become consent and a cheerful "sure" to a
+        survey question cannot retroactively grant it.
+        """
+        return slot not in self._gate_slots or slot == awaiting
+
+    def _gate_updates(self, state: SurveyState, decision: TurnDecision) -> dict:
+        """Translate the gate answers into the call's identity/consent state."""
+        updates: dict = {}
+
+        identity = state.get("identity") or ""
+        if not identity:
+            reached = self.answer(self._identity_slot)
+            if reached == "yes":
+                updates["identity"] = IDENTITY_CONFIRMED
+            elif reached == "no" or decision.identity_detail is not IdentityDetail.NONE:
+                updates["identity"] = (
+                    IDENTITY_WRONG_NUMBER
+                    if decision.identity_detail is IdentityDetail.WRONG_NUMBER
+                    else IDENTITY_UNAVAILABLE
+                )
+
+        if not state.get("consent"):
+            consent = self.answer(self._consent_slot)
+            if consent == "yes":
+                updates["consent"] = CONSENT_GRANTED
+            elif consent == "no":
+                updates["consent"] = CONSENT_DECLINED
+
+        if not state.get("reschedule"):
+            reschedule = self.answer(self._reschedule_slot)
+            if reschedule:
+                updates["reschedule"] = reschedule
+
+        return updates
+
+    def _drop_inapplicable(self, state: SurveyState) -> list[str]:
+        """Forget answers to questions this member should no longer be asked."""
+        dropped: list[str] = []
+        for turn in self.spec.questions:
+            if turn.when is None or not turn.slot or not self.answered(turn.slot):
+                continue
+            if not applies(
+                turn, answers=self._answers, payload_lookup=lambda s: self.payload_value(state, s)
+            ):
+                self.forget(turn.slot)
+                dropped.append(turn.slot)
+        return dropped
+
+    def _retry_target(
+        self,
+        awaiting: str,
+        decision: TurnDecision,
+        rejected: dict[str, str],
+        declined: list[str],
+    ) -> tuple[str, str] | None:
+        """The question we must put again, if any.
+
+        A member who answers our question with a question of their own has not
+        failed to answer it, and neither has one who declined — the first gets
+        answered and asked again, the second is settled. Only an unusable answer
+        or a rejected one counts against the budget.
+        """
+        if not awaiting or self.answered(awaiting) or awaiting in declined:
+            return None
+        if decision.declines_question:
+            return None
+        if awaiting in rejected:
+            return awaiting, rejected[awaiting]
+        if decision.corrections:
+            # They revised an earlier answer instead of answering this one. That
+            # is a contribution, not a failure to answer, and charging it to the
+            # outstanding question would spend the budget on someone being
+            # careful.
+            return None
+        if decision.event_type in (EventType.AMBIGUOUS, EventType.CORRECTED):
+            self.slot(awaiting).record(None, success=False)
+            return awaiting, "the answer was unclear"
+        if decision.event_type is EventType.ANSWERED and not decision.values:
+            self.slot(awaiting).record(None, success=False)
+            return awaiting, "no answer was given"
+        return None
+
+    # ── planning and acting ──────────────────────────────────────────────
+
+    def _plan(
+        self,
+        state: SurveyState,
+        *,
+        updates: dict | None = None,
+        declined: list[str] | None = None,
+        guard: str = "",
+    ) -> Plan:
+        merged = {**state, **(updates or {})}
+        return plan_next(
+            self.spec,
+            answers=dict(self._answers),
+            declined=tuple(declined if declined is not None else merged.get("declined") or ()),
+            identity=merged.get("identity") or "",
+            consent=merged.get("consent") or "",
+            reschedule=merged.get("reschedule") or "",
+            reschedule_datetime=merged.get("reschedule_datetime") or "",
+            survey_started=bool(merged.get("survey_started")),
+            guard=guard,
+            payload_lookup=lambda slot: self.payload_value(state, slot),
+        )
+
+    def _gate_gave_up(self, state: SurveyState, slot: str, updates: dict) -> dict:
+        """A gate we asked as often as policy allows and never got an answer to.
+
+        The call cannot proceed past a gate — there is no version of this survey
+        that runs without knowing who is on the line and that they agreed to it —
+        so it ends, politely, saying which gate it was.
+        """
+        return self._end(
+            state,
+            self.spec.policy.line("unable_to_continue"),
+            disposition=_ENDED_EARLY,
+            reason=f"{slot}_unresolved",
+            updates=updates,
+        )
+
+    async def _act(
+        self,
+        state: SurveyState,
+        plan: Plan,
+        *,
+        updates: dict,
+        last_member_message: str = "",
+        retry_slot: str = "",
+        retry_reason: str = "",
+    ) -> dict:
+        self.visit(plan.preamble_node)
+        self.visit(plan.node)
+
+        message = await generate(
+            self.client,
+            plan,
+            last_member_message=last_member_message,
+            ack=self.side_request_ack(),
+            retry_slot=retry_slot,
+            retry_reason=retry_reason,
+            attempt=self.slot(retry_slot).attempt_count if retry_slot else 0,
+            attempt_limit=self._gate_limit(retry_slot) if retry_slot else self.spec.policy.max_asks_per_slot,
+        )
+
+        extra: dict = {"phase": _ACTION_PHASE.get(plan.action, "survey")}
+        asked = retry_slot or (plan.slot if plan.action in QUESTION_ACTIONS else "")
+        if asked:
+            counts = dict(updates.get("ask_counts") or state.get("ask_counts") or {})
+            counts[asked] = counts.get(asked, 0) + 1
+            extra["ask_counts"] = counts
+            extra["awaiting_slot"] = asked
+        elif plan.action in PRESERVE_AWAITING:
+            # Saying "take your time" is not asking anything, and it must not
+            # discard the question they are taking their time over.
+            pass
+        elif plan.action not in FINAL_ACTIONS:
+            extra["awaiting_slot"] = ""
+
+        if plan.preamble:
+            extra["survey_started"] = True
+
+        # The outcome must be built from what this turn just decided, not from
+        # the state it started with. A question declined on the very turn that
+        # closes the call would otherwise be reported as never answered, which
+        # reads as a call that ran out of time rather than a member who chose
+        # not to say.
+        settled = {**state, **updates, **extra}
+
+        if plan.action in TRANSFER_ACTIONS:
+            disposition = _ACTION_DISPOSITION[plan.action]
+            reason = _TRANSFER_REASON[plan.action]
+            return {
+                **self.persisted(),
+                **updates,
+                **extra,
+                **self.signal_transfer(
+                    settled,
+                    message,
+                    reason,
+                    initiator="Caller",
+                    disposition=disposition,
+                    output_data=self._outcome(settled, disposition=disposition, reason=reason),
+                ),
+            }
+
+        if plan.action in FINAL_ACTIONS:
+            disposition = _ACTION_DISPOSITION.get(plan.action) or self._survey_disposition(settled)
+            return {
+                **self.persisted(),
+                **updates,
+                **extra,
+                **self.signal_complete(
+                    settled,
+                    message,
+                    disposition=disposition,
+                    output_data=self._outcome(settled, disposition=disposition, reason=plan.action.value),
+                ),
+            }
+
+        return {**self.persisted(), **updates, **extra, **self.speak(state, message)}
+
+    def _end(
+        self,
+        state: SurveyState,
+        message: str,
+        *,
+        disposition: str,
+        reason: str,
+        updates: dict | None = None,
+    ) -> dict:
+        """Stop the call now, keeping every answer already recorded."""
+        settled = {**state, **(updates or {})}
+        return {
+            **self.persisted(),
+            **(updates or {}),
+            **self.signal_complete(
+                settled,
+                message,
+                disposition=disposition,
+                escalation_reason=reason if disposition == _ENDED_EARLY else "",
+                output_data=self._outcome(settled, disposition=disposition, reason=reason),
+            ),
+        }
+
+    # ── outcome ──────────────────────────────────────────────────────────
+
+    def _survey_disposition(self, state: SurveyState) -> str:
+        outstanding = outstanding_questions(
+            self.spec,
+            answers=self._answers,
+            declined=tuple(state.get("declined") or ()),
+            payload_lookup=lambda slot: self.payload_value(state, slot),
+        )
+        complete = not outstanding and not (state.get("declined") or ())
+        return _SURVEYED if complete else _PARTIAL
+
+    def _outcome(self, state: SurveyState, *, disposition: str, reason: str) -> dict:
+        payload_lookup = lambda slot: self.payload_value(state, slot)  # noqa: E731
+        answers = {slot: value for slot, value in self._answers.items() if slot in self.spec.question_slots}
+        declined = [slot for slot in (state.get("declined") or []) if slot in self.spec.question_slots]
+        return {
+            "call_outcome": {
+                "status": "incomplete" if disposition == _ENDED_EARLY else "complete",
+                "disposition": disposition,
+                "reason": reason,
+                "workflow_subtype": state.get("workflow_subtype") or "MEMBER_SATISFACTION_SURVEY",
+                # The work-item facts that decided which questions this member
+                # was asked, so a reader can see why question 5 was or was not
+                # put without going back to the work item.
+                "gating_facts": {slot: payload_lookup(slot) for slot in self.spec.condition_payload_slots},
+                "answers": answers,
+                "declined_questions": declined,
+                "skipped_questions": [
+                    {"slot": skipped.slot, "node": skipped.node, "reason": skipped.reason}
+                    for skipped in skipped_questions(
+                        self.spec, answers=self._answers, payload_lookup=payload_lookup
+                    )
+                ],
+                "missing_questions": outstanding_questions(
+                    self.spec,
+                    answers=self._answers,
+                    declined=tuple(declined),
+                    payload_lookup=payload_lookup,
+                ),
+                "visited_nodes": list(self._visited),
+                "open_intents": [
+                    intent for intent in self._pending_intents if intent.get("status") == "open"
+                ],
+            }
+        }

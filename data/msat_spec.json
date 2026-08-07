@@ -1,0 +1,577 @@
+{
+  "_generated": "scripts/compile_script.py \u2014 do not edit by hand; edit msat_script.json or slot_map.json",
+  "source": {
+    "document": "docs/Allianz Member Satisfaction Survey_Scripting_Final.pdf",
+    "title": "Allianz Member Satisfaction Survey (MSAT)",
+    "program": "Sagility Smart Step program offered by Allianz Life Insurance company",
+    "pages": 2
+  },
+  "turns": [
+    {
+      "node": "vm.01",
+      "section": "Voicemail",
+      "role": "agent",
+      "kind": "voicemail",
+      "text": "Hello, this is the Sagility Smart Step Program offered by Allianz Life Insurance company . We are calling everyone who participated in the Smart Step program and would like to hear your feedback. Please call us back at 1-888-855-7837 between 8am and 8pm Eastern Time. You may also go online to take the survey at allianz.sagilitysmartsteps.com. That's a-l-l-i-a-n-z dot s-a-g-i-l-i-t-y-s-m-a-r-t-s-t-e-p-s dot com. Thank you.",
+      "goal": "Leave the program's voicemail message and end the call."
+    },
+    {
+      "node": "in.01",
+      "section": "Introduction Scripting",
+      "role": "agent",
+      "kind": "intro",
+      "text": "Hello, this is Ida, your virtual assistant from the Sagility Smart Step program offered by Allianz Life Insurance company. May I speak to [policyholder's full name]?",
+      "goal": "Introduce yourself as Ida from the Smart Step program and ask to speak to the policyholder by name.",
+      "slots": [
+        "reached_policyholder"
+      ],
+      "payload_slots": [
+        "policyholder_name"
+      ]
+    },
+    {
+      "node": "in.02",
+      "section": "Introduction Scripting",
+      "role": "agent",
+      "kind": "consent",
+      "text": "Thank you for taking my call. We're calling everyone who participated in the Smart Step program to get your feedback and make the program even better. Do you have a couple of minutes for me to ask you a few questions?",
+      "goal": "Thank them for taking the call, say why you are calling, and ask whether they have a couple of minutes for a few questions.",
+      "slots": [
+        "participation_consent"
+      ]
+    },
+    {
+      "node": "in.03",
+      "section": "Introduction Scripting",
+      "role": "agent",
+      "kind": "reschedule_offer",
+      "text": "Would you like to reschedule the call for a better time?",
+      "goal": "Offer to reschedule the call for a better time.",
+      "slots": [
+        "wants_reschedule"
+      ]
+    },
+    {
+      "node": "in.04",
+      "section": "Introduction Scripting",
+      "role": "agent",
+      "kind": "reschedule_transfer",
+      "text": "Please hold on and I will get you to someone to reschedule.",
+      "goal": "Tell them you are putting them through to someone who can reschedule."
+    },
+    {
+      "node": "in.05",
+      "section": "Introduction Scripting",
+      "role": "agent",
+      "kind": "uninterested_close",
+      "text": "Thank you for your time.",
+      "goal": "Thank them for their time and end the call."
+    },
+    {
+      "node": "sv.00",
+      "section": "Survey Questions",
+      "role": "agent",
+      "kind": "survey_intro",
+      "text": "Great. Let's get started. Please tell us about your experiences with the Smart Step Aging in Place service by completing a short satisfaction survey.",
+      "goal": "Say the survey is starting and what it is about."
+    },
+    {
+      "node": "sv.01",
+      "section": "Survey Questions",
+      "role": "agent",
+      "kind": "ask",
+      "number": "1",
+      "text": "Were you able to review any of the program resources such as action plans, articles, videos, or websites?",
+      "options": [
+        "Yes",
+        "No"
+      ],
+      "goal": "Find out whether they reviewed any of the program resources.",
+      "slots": [
+        "reviewed_resources"
+      ]
+    },
+    {
+      "node": "sv.01a",
+      "section": "Survey Questions",
+      "role": "agent",
+      "kind": "ask",
+      "number": "1a",
+      "text": "How helpful were the resources, articles, or websites in making at least one lifestyle change while participating in the program?",
+      "options": [
+        "Extremely Helpful",
+        "Somewhat Helpful",
+        "Not Very Helpful",
+        "Definitely Not Helpful"
+      ],
+      "goal": "Find out how helpful the resources were in making at least one lifestyle change, and read out the four ratings.",
+      "slots": [
+        "resource_helpfulness"
+      ],
+      "when": {
+        "answer": {
+          "slot": "reviewed_resources",
+          "equals": "yes"
+        }
+      }
+    },
+    {
+      "node": "sv.01b",
+      "section": "Survey Questions",
+      "role": "agent",
+      "kind": "ask",
+      "number": "1b",
+      "text": "How helpful were the resources, articles, or websites in making at least one lifestyle change while participating in the program?",
+      "options": [
+        "No time to review the resources",
+        "Not interested in the available resources",
+        "Program website (Smart Step portal) was not working",
+        "Other reason"
+      ],
+      "source_note": [
+        "The document prints question 1b with question 1a's stem, but 1b's four answer",
+        "options are reasons for NOT reviewing the resources. A helpfulness question",
+        "cannot be answered with 'No time to review the resources', so the printed stem",
+        "is a copy-paste from 1a rather than the question the branch means.",
+        "",
+        "The verbatim text is kept here for audit. The spoken question comes from the",
+        "goal in slot_map.json, which asks for the reason. Asking the printed stem",
+        "would record a helpfulness rating from a member who just said they never",
+        "opened the resources.",
+        "",
+        "This needs a decision from the business, and is the one place where the agent",
+        "deliberately does not say what the document prints."
+      ],
+      "goal": "Find out WHY they did not review the resources, and read out the four reasons. Do not ask how helpful the resources were \u2014 they have just said they did not see them.",
+      "slots": [
+        "no_review_reason"
+      ],
+      "when": {
+        "answer": {
+          "slot": "reviewed_resources",
+          "equals": "no"
+        }
+      },
+      "speak_goal_not_text": true
+    },
+    {
+      "node": "sv.02",
+      "section": "Survey Questions",
+      "role": "agent",
+      "kind": "ask",
+      "number": "2",
+      "text": "We value your feedback. What changes or additions would you like to see to improve the program? If you do not have feedback, you can answer no or none.",
+      "goal": "Ask what changes or additions would improve the program, and say that no or none is a fine answer.",
+      "slots": [
+        "improvement_feedback"
+      ]
+    },
+    {
+      "node": "sv.03",
+      "section": "Survey Questions",
+      "role": "agent",
+      "kind": "ask",
+      "number": "3",
+      "text": "Please tell us what you liked most about the program. If you do not have feedback, you can answer no or none.",
+      "goal": "Ask what they liked most about the program, and say that no or none is a fine answer.",
+      "slots": [
+        "liked_most"
+      ]
+    },
+    {
+      "node": "sv.04",
+      "section": "Survey Questions",
+      "role": "agent",
+      "kind": "ask",
+      "number": "4",
+      "text": "Based on your experience with the Smart Step Aging in Place Program offered by Allianz, would you recommend our program to people you know?",
+      "options": [
+        "Yes",
+        "No"
+      ],
+      "goal": "Ask whether they would recommend the program to people they know.",
+      "slots": [
+        "would_recommend"
+      ]
+    },
+    {
+      "node": "rule.01",
+      "section": "Survey Questions",
+      "role": "document",
+      "kind": "rule",
+      "text": "If policyholder is high risk, ask question 5. If policyholder is rising risk skip to question 6."
+    },
+    {
+      "node": "sv.05",
+      "section": "Survey Questions",
+      "role": "agent",
+      "kind": "ask",
+      "number": "5",
+      "text": "Were program staff helpful and knowledgeable about the program and in guiding you through your action plan?",
+      "options": [
+        "Yes",
+        "No"
+      ],
+      "goal": "Ask whether program staff were helpful and knowledgeable in guiding them through their action plan.",
+      "slots": [
+        "staff_helpful"
+      ],
+      "when": {
+        "payload": {
+          "slot": "risk_tier",
+          "in": [
+            "high"
+          ]
+        }
+      }
+    },
+    {
+      "node": "sv.06",
+      "section": "Survey Questions",
+      "role": "agent",
+      "kind": "ask",
+      "number": "6",
+      "text": "How would you rate your experience with the program overall?",
+      "options": [
+        "Extremely Helpful",
+        "Somewhat Helpful",
+        "Not Very Helpful",
+        "Definitely Not Helpful"
+      ],
+      "goal": "Ask them to rate their experience with the program overall, and read out the four ratings.",
+      "slots": [
+        "overall_experience"
+      ]
+    },
+    {
+      "node": "cl.01",
+      "section": "Closing",
+      "role": "agent",
+      "kind": "close",
+      "text": "This is the end of the survey. Thank you very much for your time and assistance. We appreciate the information and feedback you have provided us about the Smart Step program. Goodbye.",
+      "goal": "Say the survey is over, thank them for their time and feedback, and say goodbye."
+    },
+    {
+      "node": "key.01",
+      "section": "Key",
+      "role": "document",
+      "kind": "key",
+      "text": "Rules based on the risk and responses."
+    },
+    {
+      "node": "key.02",
+      "section": "Key",
+      "role": "document",
+      "kind": "key",
+      "text": "Only a high risk policyholder question."
+    },
+    {
+      "node": "key.03",
+      "section": "Key",
+      "role": "document",
+      "kind": "key",
+      "text": "Pulls from database."
+    }
+  ],
+  "slots": {
+    "policyholder_name": {
+      "type": "person_name",
+      "critical": false,
+      "payload_only": true,
+      "description": "the policyholder we were asked to survey, as the work item supplies it"
+    },
+    "risk_tier": {
+      "type": "choice",
+      "critical": false,
+      "payload_only": true,
+      "description": "the policyholder's risk tier, which decides whether question 5 is asked",
+      "options": [
+        {
+          "value": "high",
+          "label": "High",
+          "synonyms": [
+            "high risk"
+          ]
+        },
+        {
+          "value": "rising",
+          "label": "Rising",
+          "synonyms": [
+            "rising risk"
+          ]
+        }
+      ]
+    },
+    "reached_policyholder": {
+      "type": "yes_no",
+      "critical": false,
+      "description": "whether the person on the line is the policyholder we asked for"
+    },
+    "participation_consent": {
+      "type": "yes_no",
+      "critical": false,
+      "description": "whether they have a couple of minutes to answer the questions now"
+    },
+    "wants_reschedule": {
+      "type": "yes_no",
+      "critical": false,
+      "description": "whether they want the call rescheduled for a better time"
+    },
+    "reviewed_resources": {
+      "type": "yes_no",
+      "critical": true,
+      "description": "whether they reviewed any program resources \u2014 action plans, articles, videos or websites"
+    },
+    "resource_helpfulness": {
+      "type": "choice",
+      "critical": true,
+      "description": "how helpful the resources were in making at least one lifestyle change. Only asked of members who did review them",
+      "options": [
+        {
+          "value": "extremely_helpful",
+          "label": "Extremely Helpful",
+          "synonyms": [
+            "extremely",
+            "extremely helpful",
+            "very helpful",
+            "really helpful"
+          ]
+        },
+        {
+          "value": "somewhat_helpful",
+          "label": "Somewhat Helpful",
+          "synonyms": [
+            "somewhat",
+            "somewhat helpful",
+            "fairly helpful",
+            "quite helpful",
+            "a bit helpful"
+          ]
+        },
+        {
+          "value": "not_very_helpful",
+          "label": "Not Very Helpful",
+          "synonyms": [
+            "not very",
+            "not very helpful",
+            "not that helpful",
+            "not particularly helpful"
+          ]
+        },
+        {
+          "value": "definitely_not_helpful",
+          "label": "Definitely Not Helpful",
+          "synonyms": [
+            "definitely not",
+            "definitely not helpful",
+            "not helpful at all",
+            "no help at all"
+          ]
+        }
+      ]
+    },
+    "no_review_reason": {
+      "type": "choice",
+      "critical": true,
+      "description": "why they did not review the resources. Only asked of members who did not review them",
+      "options": [
+        {
+          "value": "no_time",
+          "label": "No time to review the resources",
+          "synonyms": [
+            "no time",
+            "didn't have time",
+            "did not have time",
+            "too busy",
+            "never got around to it"
+          ]
+        },
+        {
+          "value": "not_interested",
+          "label": "Not interested in the available resources",
+          "synonyms": [
+            "not interested",
+            "wasn't interested",
+            "was not interested",
+            "didn't interest me"
+          ]
+        },
+        {
+          "value": "portal_not_working",
+          "label": "Program website (Smart Step portal) was not working",
+          "synonyms": [
+            "website was not working",
+            "website wasn't working",
+            "portal was not working",
+            "portal wasn't working",
+            "couldn't log in",
+            "could not log in",
+            "site was down"
+          ]
+        },
+        {
+          "value": "other_reason",
+          "label": "Other reason",
+          "synonyms": [
+            "other",
+            "other reason",
+            "something else"
+          ]
+        }
+      ]
+    },
+    "improvement_feedback": {
+      "type": "feedback_text",
+      "critical": true,
+      "description": "changes or additions they would like to see. 'No' or 'none' is a complete answer here, not a refusal"
+    },
+    "liked_most": {
+      "type": "feedback_text",
+      "critical": true,
+      "description": "what they liked most about the program. 'No' or 'none' is a complete answer here, not a refusal"
+    },
+    "would_recommend": {
+      "type": "yes_no",
+      "critical": true,
+      "description": "whether they would recommend the program to people they know"
+    },
+    "staff_helpful": {
+      "type": "yes_no",
+      "critical": true,
+      "description": "whether program staff were helpful and knowledgeable in guiding them through their action plan"
+    },
+    "overall_experience": {
+      "type": "choice",
+      "critical": true,
+      "description": "their rating of the program overall",
+      "options": [
+        {
+          "value": "extremely_helpful",
+          "label": "Extremely Helpful",
+          "synonyms": [
+            "extremely",
+            "extremely helpful",
+            "very good",
+            "excellent",
+            "very helpful"
+          ]
+        },
+        {
+          "value": "somewhat_helpful",
+          "label": "Somewhat Helpful",
+          "synonyms": [
+            "somewhat",
+            "somewhat helpful",
+            "pretty good",
+            "fairly good",
+            "okay",
+            "fine"
+          ]
+        },
+        {
+          "value": "not_very_helpful",
+          "label": "Not Very Helpful",
+          "synonyms": [
+            "not very",
+            "not very helpful",
+            "not great",
+            "not that good"
+          ]
+        },
+        {
+          "value": "definitely_not_helpful",
+          "label": "Definitely Not Helpful",
+          "synonyms": [
+            "definitely not",
+            "definitely not helpful",
+            "not helpful at all",
+            "waste of time",
+            "terrible"
+          ]
+        }
+      ]
+    }
+  },
+  "payload": {
+    "policyholder_name": {
+      "paths": [
+        "policyholder.full_name",
+        "policyholder.name"
+      ],
+      "compose": [
+        "policyholder.first_name",
+        "policyholder.last_name"
+      ]
+    },
+    "risk_tier": {
+      "paths": [
+        "policyholder.risk_tier",
+        "program.risk_tier"
+      ]
+    }
+  },
+  "policy": {
+    "max_asks_per_slot": 3,
+    "max_consecutive_holds": 3,
+    "max_identity_asks": 2,
+    "max_consent_asks": 2,
+    "off_script": {
+      "_note": [
+        "Lines the agent may speak that the document does not contain. Every one is",
+        "a situation the script does not cover but a live call reaches. They are",
+        "listed here \u2014 rather than written into Python \u2014 so the business can review",
+        "and approve the exact wording, and so an auditor can see at a glance",
+        "everything the agent says that is not in the PDF.",
+        "tests/test_script_sources.py fails if a spoken line is neither transcribed",
+        "from the document nor declared here.",
+        "",
+        "A plain string is spoken EXACTLY as written. An object with a 'goal' is",
+        "spoken in the agent's own words, with the line as the intent \u2014 use that",
+        "only where fixed phrasing would sound mechanical, never for wording that",
+        "has been approved for what it says."
+      ],
+      "policyholder_unavailable": "Thank you \u2014 I'll try again another time. Have a good day.",
+      "wrong_number": "I'm sorry to have troubled you. Have a good day.",
+      "do_not_call": "Understood \u2014 I'll make sure you're not called about this again. Thank you for your time.",
+      "unnamed_policyholder": "the policyholder",
+      "side_request_ack": "I'll note that and pass it on to the program team.",
+      "unable_to_continue": "Thank you for the time you've given me. I'll close the survey here.",
+      "hold_ack": {
+        "_note": [
+          "Said whenever the member needs a moment. Generated rather than fixed:",
+          "hearing the identical sentence every time they pause is the clearest",
+          "possible signal that nobody is really listening."
+        ],
+        "line": "Of course, take your time.",
+        "goal": "Tell them warmly that there is no rush and you will wait. One short sentence. Do not repeat the question yet, and do not add anything else."
+      },
+      "representative_handoff": {
+        "_note": [
+          "The member asked for a person. Said exactly: what happens next should",
+          "not be paraphrased."
+        ],
+        "line": "Of course \u2014 let me put you through to someone who can help. Please stay on the line."
+      },
+      "safeguarding_handoff": {
+        "_note": [
+          "Said when the member says anything suggesting they are at risk \u2014 harm to",
+          "themselves, harm or neglect by someone else, or a medical emergency.",
+          "",
+          "Said exactly, and the survey stops there. The agent does not advise, does",
+          "not reassure, and does not ask the remaining questions. Whether this line",
+          "should also give a crisis number is a decision for the business, and a",
+          "regional one \u2014 this project will not invent a number.",
+          "",
+          "Wording deliberately promises only what an automated caller can deliver:",
+          "getting a person on the line, now."
+        ],
+        "line": "Thank you for telling me. I'm going to stay with you and bring someone from the team onto the call who can help \u2014 please hold the line."
+      },
+      "reschedule_datetime_ask": "What date and time would work best for us to call you back?",
+      "reschedule_datetime_confirm": {
+        "line": "Perfect \u2014 we will call you back at the requested time. Thank you for your time, and have a wonderful day.",
+        "goal": "Confirm the reschedule time the member just provided, thank them warmly, and end the call. Keep it brief \u2014 one or two short sentences."
+      }
+    }
+  }
+}
