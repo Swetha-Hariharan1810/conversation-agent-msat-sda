@@ -15,7 +15,7 @@ The wording sent to the model lives in ``prompts/detect_guards.*.md``.
 
 from __future__ import annotations
 
-from . import prompts
+from . import prompts, timing
 from .schema import GuardAssessment
 
 
@@ -44,6 +44,7 @@ async def detect(client, *, last_agent_message: str = "", member_text: str) -> G
     return await client.structured(
         build_messages(last_agent_message=last_agent_message, member_text=member_text),
         GuardAssessment,
+        role=timing.GUARD,
     )
 
 

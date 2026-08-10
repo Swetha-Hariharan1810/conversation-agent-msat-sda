@@ -12,6 +12,10 @@ Provider comes from the environment, matching the RCM repos' ``.env``:
     AZURE_OPENAI_ENDPOINT=...
     AZURE_OPENAI_API_KEY=...
     OPENAI_API_VERSION=...
+
+Both calls take a ``role`` — which of a turn's three calls this is — and time
+themselves under it whenever something is collecting timings. See ``timing.py``;
+on a real call nothing collects and nothing is measured.
 """
 
 from __future__ import annotations
@@ -20,6 +24,8 @@ import os
 from typing import Any, Protocol, TypeVar
 
 from pydantic import BaseModel
+
+from . import timing
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
 
@@ -33,9 +39,20 @@ def _env(*names: str, default: str = "") -> str:
 
 
 class SupportsStructured(Protocol):
-    async def structured(self, messages: list[dict[str, str]], schema: type[ModelT]) -> ModelT: ...
+    """What the agent needs of a client — a real one or a scripted stub.
 
-    async def text(self, messages: list[dict[str, str]]) -> str: ...
+    ``role`` labels which of the turn's three calls this is (``timing.GUARD``,
+    ``timing.EXTRACT``, ``timing.GENERATE``) so each can be timed on its own. It
+    is passed on every call and a stub is free to ignore it, but it has to accept
+    it: a turn is three calls, and a stub that cannot be told which one it is
+    standing in for cannot stand in for the timings either.
+    """
+
+    async def structured(
+        self, messages: list[dict[str, str]], schema: type[ModelT], *, role: str = ""
+    ) -> ModelT: ...
+
+    async def text(self, messages: list[dict[str, str]], *, role: str = "") -> str: ...
 
 
 class LLMClient:
@@ -96,15 +113,21 @@ class LLMClient:
             )
         return self._chat
 
-    async def structured(self, messages: list[dict[str, str]], schema: type[ModelT]) -> ModelT:
+    async def structured(
+        self, messages: list[dict[str, str]], schema: type[ModelT], *, role: str = ""
+    ) -> ModelT:
         # Function calling rather than strict json_schema mode: Azure's strict
         # mode demands every property be listed in `required`, which would force
         # the model to emit a value for each optional field — exactly the
         # guessing the extraction contract forbids.
         chain = self._client().with_structured_output(schema, method="function_calling")
-        result = await chain.ainvoke(messages)
+        # The whole call is inside the clock, retries and all: what a turn cost is
+        # what the member waited for, not what the last attempt took.
+        with timing.measure(role):
+            result = await chain.ainvoke(messages)
         return result if isinstance(result, schema) else schema.model_validate(result)
 
-    async def text(self, messages: list[dict[str, str]]) -> str:
-        response = await self._client().ainvoke(messages)
+    async def text(self, messages: list[dict[str, str]], *, role: str = "") -> str:
+        with timing.measure(role):
+            response = await self._client().ainvoke(messages)
         return str(getattr(response, "content", response)).strip()

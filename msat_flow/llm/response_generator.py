@@ -23,7 +23,7 @@ from __future__ import annotations
 import re
 
 from ..planner import Action, Plan
-from . import prompts
+from . import prompts, timing
 
 # The document writes the policyholder's name as "[policyholder's full name]".
 # Whatever else happens, that must never be said out loud.
@@ -134,7 +134,7 @@ async def generate(
         attempt_limit=attempt_limit,
     )
     try:
-        spoken = await client.text(messages)
+        spoken = await client.text(messages, role=timing.GENERATE)
     except Exception:  # pragma: no cover - provider failure must not drop the call
         return fallback(plan, ack)
     return spoken or fallback(plan, ack)
