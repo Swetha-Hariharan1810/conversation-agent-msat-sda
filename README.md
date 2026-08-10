@@ -41,6 +41,22 @@ The six questions, as the document prints them:
 
 ---
 
+### Testing
+
+```bash
+uv run pytest                                    # everything that needs no provider
+MSAT_LIVE_TESTS=1 uv run pytest tests/live -v    # the prompts, against a real model
+```
+
+`tests/live/` is the only place that can tell you whether the prompts work — a
+stub proves the plumbing and nothing more. It is opt-in because it costs money,
+and it skips with the reason printed rather than failing when it is not asked
+for. The turns it puts to the model, and what each should be decided as, are in
+`tests/live/scenarios/*.json`: adding a case is adding an object to a list.
+See `tests/live/README.md`.
+
+---
+
 ### Serving the graph
 
 ```bash

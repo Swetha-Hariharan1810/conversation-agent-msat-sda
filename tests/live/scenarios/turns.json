@@ -1,0 +1,133 @@
+{
+  "_readme": [
+    "Turns a real model is asked to READ, once a guard has let them through.",
+    "",
+    "The extraction contract is literal: values may only hold what the member",
+    "actually said, a choice must be one of the printed options spelled exactly,",
+    "and anything unclear is left out rather than guessed. Half of these scenarios",
+    "test that the model records what is there; the other half test that it records",
+    "nothing when there is nothing to record, which is the harder half and the one",
+    "that costs a member a wrong answer in their file when it goes wrong.",
+    "",
+    "Fields:",
+    "  awaiting     the slot the caller just asked for, or \"\"",
+    "  last_agent   what the caller said, verbatim enough for context",
+    "  member       the member's reply",
+    "  expect       slot -> value that MUST be recorded, spelled exactly",
+    "  expect_absent slots that must NOT be recorded from this turn",
+    "  expect_corrections  slot -> value that must arrive as a correction",
+    "  expect_declines     true when the member refused the question",
+    "",
+    "Every field is optional but 'member'. Assert only what the scenario is about."
+  ],
+
+  "scenarios": [
+    {
+      "id": "plain_yes",
+      "awaiting": "reviewed_resources",
+      "last_agent": "Have you had a chance to review any of the program resources — the action plans, articles, videos or websites?",
+      "member": "Yes, I had a look at a few of the articles.",
+      "expect": { "reviewed_resources": "yes" }
+    },
+    {
+      "id": "choice_spoken_loosely",
+      "awaiting": "resource_helpfulness",
+      "last_agent": "How helpful were they in making at least one lifestyle change? Extremely helpful; somewhat helpful; not very helpful; definitely not helpful.",
+      "member": "Somewhat, I'd say. They gave me a couple of ideas.",
+      "expect": { "resource_helpfulness": "somewhat_helpful" },
+      "why": "The option value, not the member's wording, is what may be recorded."
+    },
+    {
+      "id": "choice_too_vague_to_record",
+      "awaiting": "overall_experience",
+      "last_agent": "How would you rate your experience with the program overall? Extremely helpful; somewhat helpful; not very helpful; definitely not helpful.",
+      "member": "Oh, it was alright I suppose. Can't complain.",
+      "expect_absent": ["overall_experience"],
+      "why": "'Alright' is nearest to somewhat_helpful and must still not be recorded. A rating the member did not give is worse than no rating."
+    },
+    {
+      "id": "choice_adjacent_but_unsaid",
+      "awaiting": "overall_experience",
+      "last_agent": "How would you rate your experience with the program overall? Extremely helpful; somewhat helpful; not very helpful; definitely not helpful.",
+      "member": "Somewhere in the middle, I'd say. Mustn't grumble.",
+      "expect_absent": ["overall_experience"],
+      "why": "The nearest option is somewhat_helpful and it is still a guess. A wrong rating is worse than a gap, because a gap is reported as one."
+    },
+    {
+      "id": "choice_the_member_did_give",
+      "awaiting": "overall_experience",
+      "last_agent": "How would you rate your experience with the program overall? Extremely helpful; somewhat helpful; not very helpful; definitely not helpful.",
+      "member": "Extremely helpful. Genuinely, it changed how I eat.",
+      "expect": { "overall_experience": "extremely_helpful" },
+      "why": "The other side of the scenario above — restraint must not become deafness."
+    },
+    {
+      "id": "no_feedback_is_an_answer",
+      "awaiting": "improvement_feedback",
+      "last_agent": "What changes or additions would you like to see that would improve the program? No or none is a perfectly good answer.",
+      "member": "No, nothing I can think of.",
+      "expect": { "improvement_feedback": "none" },
+      "why": "On the two feedback questions this IS the answer, not a refusal. Getting it wrong reports a member who answered as one who declined."
+    },
+    {
+      "id": "refusal_is_not_an_answer",
+      "awaiting": "improvement_feedback",
+      "last_agent": "What changes or additions would you like to see that would improve the program?",
+      "member": "I'd rather not get into all that, if it's all the same to you.",
+      "expect_declines": true,
+      "expect_absent": ["improvement_feedback"],
+      "why": "The mirror of the scenario above. These two are one word apart in the transcript and a survey apart in the result."
+    },
+    {
+      "id": "answers_two_questions_at_once",
+      "awaiting": "reviewed_resources",
+      "last_agent": "Have you had a chance to review any of the program resources?",
+      "member": "Yes I did, and they were extremely helpful actually — I've started walking every morning because of them.",
+      "expect": { "reviewed_resources": "yes", "resource_helpfulness": "extremely_helpful" },
+      "why": "A member answering ahead is being helpful. The whole point of offering the model the questionnaire rather than one slot."
+    },
+    {
+      "id": "correction_reopens_a_branch",
+      "awaiting": "improvement_feedback",
+      "last_agent": "What changes or additions would you like to see that would improve the program?",
+      "member": "Actually, hang on — I said I'd looked at the resources, but I never did get round to opening any of them.",
+      "expect_corrections": { "reviewed_resources": "no" },
+      "why": "A correction four questions later. It should arrive as a correction, not as a fresh value, and it re-opens question 1b."
+    },
+    {
+      "id": "not_knowing_is_not_refusing",
+      "awaiting": "would_recommend",
+      "last_agent": "Would you recommend the program to people you know?",
+      "member": "I honestly couldn't tell you. I don't really know anyone who'd need it.",
+      "expect_declines": false,
+      "expect_absent": ["would_recommend"],
+      "why": "The prompt says not knowing is not a refusal. It is an unclear answer, which is retried rather than settled."
+    },
+    {
+      "id": "wrong_number",
+      "awaiting": "reached_policyholder",
+      "last_agent": "May I speak to Margaret Ellison?",
+      "member": "There's no Margaret here. You've got the wrong number, love.",
+      "expect": { "reached_policyholder": "no" },
+      "expect_identity_detail": "wrong_number",
+      "why": "The difference between a work item worth retrying tomorrow and a number that should never be dialled for this member again."
+    },
+    {
+      "id": "policyholder_unavailable",
+      "awaiting": "reached_policyholder",
+      "last_agent": "May I speak to Margaret Ellison?",
+      "member": "She's my mother — she's having a nap just now. Can I take a message?",
+      "expect": { "reached_policyholder": "no" },
+      "expect_identity_detail": "unavailable",
+      "why": "Right household, wrong person. Retryable, unlike the scenario above."
+    },
+    {
+      "id": "question_back_is_not_a_failure_to_answer",
+      "awaiting": "would_recommend",
+      "last_agent": "Would you recommend the program to people you know?",
+      "member": "Yes I would. Who is it you said you were calling from again?",
+      "expect": { "would_recommend": "yes" },
+      "why": "Answered and asked something back. The answer must still land, and the question should surface as a secondary intent."
+    }
+  ]
+}

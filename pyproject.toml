@@ -45,3 +45,10 @@ include = ["msat_flow*"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+# Everything under tests/live talks to a real provider and is skipped unless
+# MSAT_LIVE_TESTS=1 — see tests/live/README.md. The marker is here so the whole
+# set can be selected or excluded by name (`-m live`, `-m "not live"`) without
+# anyone having to know which directory it lives in.
+markers = [
+  "live: sends real requests to the configured LLM provider; costs money and needs credentials",
+]
