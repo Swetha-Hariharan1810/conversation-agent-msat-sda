@@ -14,6 +14,7 @@ from __future__ import annotations
 import pytest
 
 from msat_flow.agents.survey_agent import MsatSurveyAgent
+from msat_flow.state import initial_state
 
 from .loader import scenarios
 
@@ -28,19 +29,22 @@ PAYLOAD = {
 
 
 def _state(spec, member: str, *, awaiting: str) -> dict:
-    """Mid-survey state: identity and consent settled, one question outstanding."""
+    """Mid-survey state: identity and consent settled, one question outstanding.
+
+    Built from the platform's own constructor. The work item belongs under
+    `input_data` — put it anywhere else and every payload fact reads as empty,
+    which does not fail loudly; it just skips the questions they gate.
+    """
     return {
+        **initial_state(PAYLOAD),
         "messages": [
             {"role": "assistant", "content": "…"},
             {"role": "user", "content": member},
         ],
-        "payload": PAYLOAD,
         "identity": "confirmed",
         "consent": "granted",
         "survey_started": True,
         "awaiting_slot": awaiting,
-        "ambiguous_counts": {},
-        "workflow_subtype": PAYLOAD["workflow_subtype"],
     }
 
 

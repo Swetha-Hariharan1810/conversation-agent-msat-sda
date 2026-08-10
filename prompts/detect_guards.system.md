@@ -31,15 +31,33 @@ one wins is decided afterwards, not by you.
   own is not enough, because people answer their phones that way too. Look for
   what only a machine says: leave a message, after the tone, not available to
   take your call.
+  A greeting is still a recording when it is warm, informal, and uses the
+  member's own name and voice — "Hi, you've reached Margaret, I can't come to
+  the phone just now, leave your name and number after the tone" is a machine
+  from beginning to end. The tell is that it instructs the caller what to do
+  instead of speaking to them. When this one is true it is usually the only one
+  true: a recording is not stepping away, is not asking for anything, and is not
+  at risk. Do not also set `asks_to_hold` because the recording says it will call
+  back, and do not set `asks_for_representative` because it offers another
+  number.
 
 - `asks_not_to_be_called`: they want the calls to stop — taken off the list, not
-  called again, unsubscribed. Declining this survey, or asking to be called back
-  at a better time, is not that; the survey handles both of those itself.
+  called again, unsubscribed. It has to be a request about *future* calls.
+  Being fed up is not one. "I'm sick of being rung about this", "what a waste of
+  time", "this is the third time you've called" are complaints, and a member is
+  allowed to be annoyed and still be surveyed. Declining this survey, or asking
+  to be tried at a better time, is not this either; the survey handles both
+  itself. Set it only when they have actually asked for the calling to end.
 
 - `asks_to_hold`: they are stepping away for a moment and mean to come back —
-  fetching their glasses, going to the door, telling somebody else to wait. Only
-  set this when the caller is being asked to wait. Somebody ending the call is
-  not on hold.
+  fetching their glasses, going to the door, telling somebody else to wait,
+  putting the phone down for a second. Brief and idiomatic counts: "two ticks",
+  "half a mo", "hang on", "bear with me", "let me just...", "give me a second",
+  "the kettle's going".
+  The test is whether the caller is being asked to wait *on this call, now*.
+  Somebody who wants to be phoned another day is not on hold, and neither is
+  somebody who is simply busy and would like the call to end — both of those
+  are the survey's own business and every field should be false.
 
 When the turn is an ordinary reply to the survey — an answer, a refusal, a
 question back, a complaint, or something we cannot make sense of — every field is

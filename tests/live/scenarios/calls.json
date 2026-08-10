@@ -1,0 +1,358 @@
+{
+  "_readme": [
+    "Whole calls, driven end to end against a real provider.",
+    "",
+    "The other scenario files put ONE turn to the model. These run a call from the",
+    "greeting to the closing line — every question, every model call, the real",
+    "planner deciding what comes next — and check what came out the other end.",
+    "That is the only place several things can be seen at all: that question 1a is",
+    "asked and 1b is not, that question 5 appears for a high-risk member and is",
+    "reported as skipped for a rising one, that a correction re-opens a branch, and",
+    "that the disposition matches what actually happened on the call.",
+    "",
+    "The member is scripted, not generated. Their replies are keyed by the slot the",
+    "agent is waiting on, so the script answers whatever it is actually asked",
+    "rather than assuming an order — if the planner asks something unexpected, the",
+    "call runs out of replies and the test says which question had none.",
+    "",
+    "Fields:",
+    "  payload      the work item, as the platform would send it",
+    "  replies      slot -> what the member says when asked for it",
+    "  expect.disposition   how the call must end",
+    "  expect.answers       slot -> the value that must be in the outcome",
+    "  expect.not_asked     slots the member must never be asked for",
+    "  expect.skipped       slots the outcome must report as skipped",
+    "",
+    "A guard mid-call needs no special mechanism: make the guard line the reply to",
+    "whichever question it should interrupt.",
+    "",
+    "These cost far more than the single-turn scenarios — a whole call is roughly",
+    "ten agent turns and up to three model calls each. Run this file on its own",
+    "when that matters: pytest tests/live/test_full_calls.py",
+    "",
+    "One rule about the replies: keep the GATES unambiguous. Identity and consent",
+    "are not what these calls are testing, and a gate that fails ends the call",
+    "before the interesting part, reporting ended_early and hiding whatever the",
+    "scenario was actually for. Save the idiom, the hesitation and the oblique",
+    "phrasing for the survey questions and the guard interjections, where a",
+    "misread is the finding rather than a wall in front of one."
+  ],
+  "calls": [
+    {
+      "id": "complete_survey_high_risk",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "rcm-live-001",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, go on then, I've got a few minutes.",
+        "reviewed_resources": "Yes, I looked through several of the articles.",
+        "resource_helpfulness": "Extremely helpful.",
+        "improvement_feedback": "More phone check-ins would help, I think.",
+        "liked_most": "The nurse I spoke to was marvellous with me.",
+        "would_recommend": "Yes, I would.",
+        "staff_helpful": "Yes, very knowledgeable.",
+        "overall_experience": "Extremely helpful."
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": {
+          "reviewed_resources": "yes",
+          "resource_helpfulness": "extremely_helpful",
+          "would_recommend": "yes",
+          "staff_helpful": "yes",
+          "overall_experience": "extremely_helpful"
+        },
+        "not_asked": [
+          "no_review_reason"
+        ]
+      },
+      "why": "The whole survey, start to finish, for the member who gets every question. If this one does not pass nothing else is worth reading."
+    },
+    {
+      "id": "rising_tier_skips_question_five",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "rcm-live-002",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Alan",
+          "last_name": "Whitfield",
+          "risk_tier": "rising"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "That's me, yes.",
+        "participation_consent": "Yes, that's fine.",
+        "reviewed_resources": "Yes, the videos mostly.",
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "Nothing comes to mind.",
+        "liked_most": "Being able to do it in my own time.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "THIS MUST NEVER BE ASKED",
+        "overall_experience": "Somewhat helpful."
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": {
+          "reviewed_resources": "yes",
+          "resource_helpfulness": "somewhat_helpful"
+        },
+        "not_asked": [
+          "staff_helpful"
+        ],
+        "skipped": [
+          "staff_helpful"
+        ]
+      },
+      "why": "The one question gated on a fact the call can never learn. A rising-tier member asked about staff would be a wrong question with a clean-looking answer."
+    },
+    {
+      "id": "no_resources_takes_the_other_branch",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "rcm-live-003",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Doreen",
+          "last_name": "Pike",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, alright then.",
+        "reviewed_resources": "No, I never got round to any of it.",
+        "no_review_reason": "I didn't have time, really.",
+        "resource_helpfulness": "THIS MUST NEVER BE ASKED",
+        "improvement_feedback": "Maybe a phone call to walk me through it.",
+        "liked_most": "Nothing much, to be honest.",
+        "would_recommend": "No.",
+        "staff_helpful": "I never really dealt with them.",
+        "overall_experience": "Not very helpful."
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": {
+          "reviewed_resources": "no",
+          "no_review_reason": "no_time",
+          "would_recommend": "no",
+          "overall_experience": "not_very_helpful"
+        },
+        "not_asked": [
+          "resource_helpfulness"
+        ],
+        "skipped": [
+          "resource_helpfulness"
+        ]
+      },
+      "why": "1a or 1b, never both. The branch is decided by an answer given on the call rather than by the work item."
+    },
+    {
+      "id": "safeguarding_stops_the_survey_mid_call",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "rcm-live-004",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, that's me.",
+        "participation_consent": "Yes, go on.",
+        "reviewed_resources": "Yes, some of them.",
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "There's not much left for me now Bill's gone. I just sit here most days.",
+        "liked_most": "THIS MUST NEVER BE ASKED",
+        "would_recommend": "THIS MUST NEVER BE ASKED",
+        "staff_helpful": "THIS MUST NEVER BE ASKED",
+        "overall_experience": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "safeguarding_handoff",
+        "answers": {
+          "reviewed_resources": "yes",
+          "resource_helpfulness": "somewhat_helpful"
+        },
+        "not_asked": [
+          "liked_most",
+          "would_recommend",
+          "overall_experience"
+        ]
+      },
+      "why": "The survey stops where the disclosure happens. Everything answered before it is kept — the member gave those answers and they are still true — and nothing after it is asked."
+    },
+    {
+      "id": "declines_to_take_part",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "rcm-live-005",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Raymond",
+          "last_name": "Coe",
+          "risk_tier": "rising"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes.",
+        "participation_consent": "No, I'd rather not, thanks.",
+        "wants_reschedule": "No, don't bother.",
+        "reviewed_resources": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "uninterested",
+        "not_asked": [
+          "reviewed_resources",
+          "overall_experience"
+        ]
+      },
+      "why": "A member who declines is a correct outcome, not a failure. No survey question may be asked past a refused consent gate."
+    },
+    {
+      "id": "asks_to_be_called_another_time",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "rcm-live-006",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Ivy",
+          "last_name": "Marsden",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, hello.",
+        "participation_consent": "Not just now, I'm in the middle of something.",
+        "wants_reschedule": "Yes, that would be better.",
+        "reschedule_datetime": "Thursday afternoon, after two.",
+        "reviewed_resources": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "reschedule_requested",
+        "not_asked": [
+          "reviewed_resources"
+        ]
+      },
+      "why": "The reschedule the document itself offers. Note the consent reply is the same wording as the clear.reschedule_is_not_do_not_call guard scenario — here it has to flow through the gate rather than trip a guard."
+    },
+    {
+      "id": "wrong_number_ends_the_call",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "rcm-live-007",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "There's no Margaret here. You've got the wrong number, love.",
+        "participation_consent": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "wrong_number",
+        "not_asked": [
+          "participation_consent",
+          "reviewed_resources"
+        ]
+      },
+      "why": "A number that should never be dialled for this member again. Consent must not be asked of somebody who is not the policyholder."
+    },
+    {
+      "id": "hold_then_carries_on",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "rcm-live-008",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, alright.",
+        "reviewed_resources": [
+          "Hang on love, there's somebody at the door.",
+          "Sorry about that. Yes, I did read them."
+        ],
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "Nothing really.",
+        "liked_most": "The articles were clear enough.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful."
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": {
+          "reviewed_resources": "yes",
+          "resource_helpfulness": "somewhat_helpful"
+        },
+        "not_asked": [
+          "no_review_reason"
+        ]
+      },
+      "why": "A pause must not cost the member the question they were part way through. The list of replies is consumed in order for the same slot: the member steps away, comes back, and answers the question that was still waiting."
+    },
+    {
+      "id": "asks_to_stop_calling_mid_survey",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "rcm-live-009",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Gordon",
+          "last_name": "Reeve",
+          "risk_tier": "rising"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes.",
+        "participation_consent": "Yes, alright — quickly though.",
+        "reviewed_resources": "Please don't ring this number again, I've had quite enough of it.",
+        "resource_helpfulness": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "do_not_call",
+        "not_asked": [
+          "resource_helpfulness",
+          "overall_experience"
+        ]
+      },
+      "why": "Ends the call and is reported so the list can be updated. Whatever was answered before it is kept."
+    }
+  ]
+}

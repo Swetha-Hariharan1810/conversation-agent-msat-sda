@@ -17,7 +17,7 @@ import pytest
 from msat_flow.llm.extractor import extract
 from msat_flow.slots.pipeline import accept
 
-from .loader import describe, ids, repeats, scenarios
+from .loader import failure, ids, repeats, scenarios
 
 TURNS = scenarios("turns")
 
@@ -50,7 +50,14 @@ async def test_the_turn_is_read_as_written(client, spec, transcript, row):
             member=row["member"],
             expected={
                 key: row[key]
-                for key in ("expect", "expect_absent", "expect_corrections", "expect_declines")
+                for key in (
+                    "expect",
+                    "expect_any",
+                    "expect_absent",
+                    "expect_corrections",
+                    "expect_declines",
+                    "expect_identity_detail",
+                )
                 if key in row
             },
             decided={
@@ -65,38 +72,48 @@ async def test_the_turn_is_read_as_written(client, spec, transcript, row):
                 "secondary_intents": decision.secondary_intents,
             },
         )
-        context = (
-            f"\nscenario : {row['id']}"
-            f"\nattempt  : {attempt}"
-            f"\nmember   : {row['member']}"
-            f"\nevent    : {decision.event_type}"
-            f"\nvalues   : {decision.values}"
-            f"\ncorrect. : {decision.corrections}"
-            f"\ndeclines : {decision.declines_question}"
-            f"\nidentity : {decision.identity_detail!r}"
-            f"\nwhy this scenario exists:\n{describe(row)}"
+        recorded = {slot: _settled(slot, raw) for slot, raw in decision.values.items() if raw}
+        seen = dict(
+            event=decision.event_type,
+            recorded=recorded or "nothing",
+            corrections=decision.corrections or "none",
+            declines=decision.declines_question,
+            identity=decision.identity_detail.value or "none",
+            attempt=attempt,
         )
 
         for slot, expected in (row.get("expect") or {}).items():
-            assert _settled(slot, decision.values.get(slot, "")) == expected, (
-                f"\n{slot} should have been recorded as {expected!r}{context}"
+            assert recorded.get(slot, "") == expected, failure(
+                row, expected=f"{slot}={expected!r}", got=recorded.get(slot) or "nothing", **seen
+            )
+
+        for slot in row.get("expect_any") or []:
+            assert recorded.get(slot), failure(
+                row, expected=f"{slot} recorded as anything", got="nothing", **seen
             )
 
         for slot in row.get("expect_absent") or []:
-            recorded = _settled(slot, decision.values.get(slot, ""))
-            assert not recorded, f"\n{slot} was recorded as {recorded!r} and should not have been{context}"
+            assert not recorded.get(slot), failure(
+                row, expected=f"{slot} not recorded", got=f"{slot}={recorded[slot]!r}", **seen
+            )
 
         for slot, expected in (row.get("expect_corrections") or {}).items():
-            assert _settled(slot, decision.corrections.get(slot, "")) == expected, (
-                f"\n{slot} should have arrived as a correction of {expected!r}{context}"
+            assert _settled(slot, decision.corrections.get(slot, "")) == expected, failure(
+                row, expected=f"correction {slot}={expected!r}", got=decision.corrections or "none", **seen
             )
 
         if "expect_declines" in row:
-            assert decision.declines_question is row["expect_declines"], (
-                f"\ndeclines_question should be {row['expect_declines']}{context}"
+            assert decision.declines_question is row["expect_declines"], failure(
+                row,
+                expected=f"declines_question={row['expect_declines']}",
+                got=decision.declines_question,
+                **seen,
             )
 
         if "expect_identity_detail" in row:
-            assert decision.identity_detail.value == row["expect_identity_detail"], (
-                f"\nidentity_detail should be {row['expect_identity_detail']!r}{context}"
+            assert decision.identity_detail.value == row["expect_identity_detail"], failure(
+                row,
+                expected=f"identity_detail={row['expect_identity_detail']!r}",
+                got=decision.identity_detail.value or "none",
+                **seen,
             )

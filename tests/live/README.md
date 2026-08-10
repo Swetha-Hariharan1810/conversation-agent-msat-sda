@@ -8,6 +8,9 @@ plumbing is right and nothing else.
 # opt in, with credentials in the environment exactly as a call would have them
 MSAT_LIVE_TESTS=1 uv run pytest tests/live -v
 
+# whole calls only — nine complete surveys, the expensive and most useful file
+MSAT_LIVE_TESTS=1 uv run pytest tests/live/test_full_calls.py -v
+
 # just the guards, four times each, to see whether the answers are stable
 MSAT_LIVE_TESTS=1 MSAT_LIVE_REPEAT=4 uv run pytest tests/live/test_guard_detection.py -v
 
@@ -66,6 +69,8 @@ deliberately, and `MSAT_RESULTS_DIR` writes them elsewhere.
 | `test_guard_detection.py` | Is this turn safety, a request for a person, voicemail, do-not-call or a pause? Asked twice — of the model alone, and of the whole guard |
 | `test_turn_reading.py` | Does the extractor record what the member said, and nothing they did not? |
 | `test_full_turns.py` | Do the two model calls compose — guard first, extractor only if it let the turn through? |
+| `test_full_calls.py` | **Whole calls**, greeting to closing line — every question, the real planner, the disposition that came out |
+| `scenarios/calls.json` | The complete calls, and what each must end as |
 | `scenarios/guards.json` | The turns, and what each should be decided as |
 | `scenarios/turns.json` | The turns, and what should be recorded from each |
 
@@ -114,3 +119,35 @@ thing being tested, not a flaw in the test:
 - **Do not loosen an assertion to make a run green.** The negative scenarios —
   the ones expecting no guard and no recorded value — are the expensive half, and
   they are the half it is tempting to soften.
+
+## Whole calls
+
+`test_full_calls.py` runs a call from the greeting to the closing line. The agent
+speaks, a scripted member answers whatever it was actually asked, and the loop
+repeats until the call ends by itself — roughly ten agent turns, up to three
+model calls each, driving the same loop `app_graph.py` runs in production.
+
+Several things can only be seen here:
+
+- question 1a is asked and 1b is not, decided by an answer given on the call
+- question 5 appears for a high-risk member and is reported as **skipped** — not
+  missing — for a rising one
+- a safeguarding disclosure at question 2 stops the survey, keeps what came
+  before it, and asks nothing after
+- the disposition matches what happened rather than what was intended
+
+The member's replies are keyed by the slot the agent is waiting on, never by
+position, so the script answers the question actually put. If the planner asks
+something the script has no reply for, the test says which question it was rather
+than hanging — that is itself a finding.
+
+`THIS MUST NEVER BE ASKED` is a real reply in the scripts. It is what a question
+this member should never get would receive, so a planner that asks it produces a
+named failure instead of a quietly plausible answer.
+
+One rule when adding a call: **keep the gates unambiguous.** Identity and consent
+are not what these scenarios test, and a gate that fails ends the call before the
+interesting part and reports `ended_early`, hiding whatever the scenario was for.
+Idiom, hesitation and oblique phrasing belong on the survey questions and the
+guard interjections, where a misread is the finding rather than a wall in front
+of one.

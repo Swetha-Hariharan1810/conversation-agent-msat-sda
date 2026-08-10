@@ -8,6 +8,10 @@ Two layers, asked separately because they answer different questions:
   included. A failure here that the layer above passed is a composition problem,
   and ``core/guards.py`` is where that is fixed.
 
+The two make separate model calls, so the same scenario can fail one and pass
+the other. That is not a bug in the tests: it is the nondeterminism showing, and
+it is worth seeing rather than hiding behind a shared result.
+
 Scenarios live in ``scenarios/guards.json``. No survey content is named here.
 """
 
@@ -19,7 +23,7 @@ from msat_flow.agents.survey_agent import MsatSurveyAgent
 from msat_flow.core.guards import match_patterns, resolve
 from msat_flow.llm.guard_detector import detect
 
-from .loader import describe, ids, repeats, scenarios
+from .loader import failure, ids, repeats, scenarios
 
 GUARDS = scenarios("guards")
 
@@ -34,6 +38,7 @@ async def test_model_judges_the_turn(client, transcript, row):
             client, last_agent_message=row.get("last_agent", ""), member_text=row["member"]
         )
         got = resolve(assessment)
+        flags = sorted(name for name, on in assessment.model_dump().items() if on)
         # Recorded before the assertion: a failed judgement is the exchange most
         # worth reading afterwards, and an assert that fires first loses it.
         transcript.exchange(
@@ -41,26 +46,14 @@ async def test_model_judges_the_turn(client, transcript, row):
             caller=row.get("last_agent", ""),
             member=row["member"],
             expected={"guard": expected or None},
-            decided={
-                "guard": got or None,
-                "flags": sorted(name for name, on in assessment.model_dump().items() if on),
-            },
+            decided={"guard": got or None, "flags": flags},
         )
-        assert got == expected, (
-            f"\nscenario : {row['id']}"
-            f"\nattempt  : {attempt}"
-            f"\nmember   : {row['member']}"
-            f"\nexpected : {expected or '(no guard)'}"
-            f"\ngot      : {got or '(no guard)'}"
-            f"\nflags    : {assessment.model_dump()}"
-            f"\nwhy this scenario exists:\n{describe(row)}"
+        assert got == expected, failure(
+            row, expected=expected, got=got, attempt=attempt, flags=flags or "none set"
         )
         for field, value in (row.get("expect_flags") or {}).items():
-            assert getattr(assessment, field) is value, (
-                f"\nscenario : {row['id']}"
-                f"\nflag     : {field} should be {value}"
-                f"\nflags    : {assessment.model_dump()}"
-                f"\nwhy this scenario exists:\n{describe(row)}"
+            assert getattr(assessment, field) is value, failure(
+                row, expected=f"{field}={value}", got=f"flags {flags or 'none set'}", attempt=attempt
             )
 
 
@@ -74,6 +67,7 @@ async def test_call_acts_on_the_turn(client, spec, transcript, row):
         outcome = await agent.check_guards(
             {"ambiguous_counts": {}}, row["member"], row.get("last_agent", "")
         )
+        matched = match_patterns(row["member"])
         transcript.exchange(
             scenario=row["id"],
             caller=row.get("last_agent", ""),
@@ -81,16 +75,14 @@ async def test_call_acts_on_the_turn(client, spec, transcript, row):
             expected={"guard": expected or None},
             decided={
                 "guard": outcome.kind or None,
-                "patterns": match_patterns(row["member"]) or None,
+                "patterns": matched or None,
                 "ends_the_call": outcome.handled,
             },
         )
-        assert outcome.kind == expected, (
-            f"\nscenario : {row['id']}"
-            f"\nattempt  : {attempt}"
-            f"\nmember   : {row['member']}"
-            f"\nexpected : {expected or '(no guard)'}"
-            f"\ngot      : {outcome.kind or '(no guard)'}"
-            f"\npatterns : {match_patterns(row['member']) or '(no match)'}"
-            f"\nwhy this scenario exists:\n{describe(row)}"
+        assert outcome.kind == expected, failure(
+            row,
+            expected=expected,
+            got=outcome.kind,
+            attempt=attempt,
+            patterns=matched or "no match",
         )
