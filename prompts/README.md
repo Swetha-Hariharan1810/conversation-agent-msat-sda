@@ -18,6 +18,8 @@ so a JSON example pasted in here fails the test suite rather than the call.
 
 | File | Sent when |
 |---|---|
+| `detect_guards.system.md` | Deciding whether a turn is one the survey cannot carry on through — safety, a request for a person, voicemail, do-not-call, a pause |
+| `detect_guards.user.md` | …with the last thing said and the member's reply, and nothing else |
 | `extract_turn.system.md` | Reading one member turn — the rules for what may be recorded |
 | `extract_turn.user.md` | …with this call's questions, the last thing said, and the member's reply |
 | `speak_line.system.md` | Saying one line — who Ida is, and the hard rules on wording |

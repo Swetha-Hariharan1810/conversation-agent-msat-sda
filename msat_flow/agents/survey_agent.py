@@ -157,13 +157,15 @@ class MsatSurveyAgent(BaseAgent):
         if not member_text:
             return await self._act(state, self._plan(state), updates={})
 
-        guard = self.check_guards(state, member_text)
+        guard = await self.check_guards(state, member_text, last_agent)
         # Safety, a request for a person, an answering machine and a pause are
         # all turned into planned actions, so their wording comes from the spec
-        # and the turn is recorded like any other. Crucially, the first two
-        # happen BEFORE the turn is read as an answer: a member who is not safe
-        # must never wait on a provider call, and must never have what they said
-        # filed against question 3.
+        # and the turn is recorded like any other. Crucially, the first two are
+        # decided BEFORE the turn is read as an answer, by a call of their own
+        # that is asked nothing but this: a member who is not safe must never
+        # have what they said weighed up against question 3 first, and must never
+        # be left waiting while the survey works out whether it counts as an
+        # answer.
         if guard.kind in _PLANNED_GUARDS:
             return await self._act(state, self._plan(state, guard=guard.kind), updates=dict(guard.update))
         if guard.kind == _DO_NOT_CALL:
@@ -198,10 +200,12 @@ class MsatSurveyAgent(BaseAgent):
                 disposition=_ENDED_EARLY,
                 reason=f"could not process the turn: {exc}",
             )
-        # The wording guards catch what a member says plainly. These catch what
-        # they say obliquely — "I don't see much point any more" trips no
-        # pattern — and are the reason the extractor is asked to lean towards
-        # raising a concern rather than away from it.
+        # A second look at the same turn, from the call that reads it. The guard
+        # above has usually settled these already; what this catches is the turn
+        # where the guard's own model call failed and it fell back to wording,
+        # which is exactly when an obliquely worded "I don't see much point any
+        # more" would otherwise go past. It is why the extractor is asked to lean
+        # towards raising a concern rather than away from it.
         if decision.safeguarding_concern:
             return await self._act(state, self._plan(state, guard=guards.SAFEGUARDING), updates={})
         if decision.asks_for_representative:

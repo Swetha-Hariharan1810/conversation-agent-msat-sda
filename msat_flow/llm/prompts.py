@@ -33,6 +33,9 @@ class PromptError(ValueError):
 # Empty means the prompt takes none and is sent as written. Anything the model
 # is told about the call arrives through one of these.
 CONTRACT: dict[str, frozenset[str]] = {
+    # Deciding whether one member turn trips a guard.
+    "detect_guards.system": frozenset(),
+    "detect_guards.user": frozenset({"last_agent", "member"}),
     # Reading one member turn.
     "extract_turn.system": frozenset(),
     "extract_turn.user": frozenset({"slots", "last_agent", "member"}),
