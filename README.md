@@ -41,6 +41,22 @@ The six questions, as the document prints them:
 
 ---
 
+### Testing
+
+```bash
+uv run pytest                                    # everything that needs no provider
+MSAT_LIVE_TESTS=1 uv run pytest tests/live -v    # the prompts, against a real model
+```
+
+`tests/live/` is the only place that can tell you whether the prompts work — a
+stub proves the plumbing and nothing more. It is opt-in because it costs money,
+and it skips with the reason printed rather than failing when it is not asked
+for. The turns it puts to the model, and what each should be decided as, are in
+`tests/live/scenarios/*.json`: adding a case is adding an object to a list.
+See `tests/live/README.md`.
+
+---
+
 ### Serving the graph
 
 ```bash
@@ -56,11 +72,16 @@ local checkpointer so persistence is platform-managed. In-process callers use
 ## Input and output
 
 Input follows this payload shape, validated against `data/input_schema.json`.
-The work item brings exactly two facts to the call:
+The work item brings exactly two facts *to the call itself*:
 
 ```json
 {
   "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+  "call_context": {
+    "call_id": "rcm-2026-02-01-0001",
+    "callback_number": "800-678-0920",
+    "language": "en-US"
+  },
   "policyholder": {
     "first_name": "Margaret",
     "last_name": "Ellison",
@@ -68,6 +89,17 @@ The work item brings exactly two facts to the call:
   }
 }
 ```
+
+`call_context` is the frame around the call rather than part of it: which call
+this is, on what line, in what language. Only `policyholder` reaches what the
+agent says or asks. `callback_number` is declared but deliberately **not** spoken
+— no approved line offers a number to call back on, and the agent does not invent
+contact details. It is one binding away from being live once such a line exists.
+
+There is no `agent_name` field, on purpose. The caller is Ida; that name is part
+of the approved introduction in `data/msat_script.json` and of who the agent is
+in `prompts/speak_line.system.md`. It is not a per-work-item setting, and a
+payload field implying otherwise would be an invitation to change it by accident.
 
 `risk_tier` decides whether question 5 is asked. It is never inferred and nothing
 said on the call can change it; a work item that does not carry one is reported

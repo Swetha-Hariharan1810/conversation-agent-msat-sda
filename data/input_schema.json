@@ -11,11 +11,28 @@
     },
     "call_context": {
       "type": "object",
+      "description": "The frame around the call — which call this is, on what line, in what language. None of it is survey content and none of it gates a question. There is deliberately no agent_name field: the caller is Ida, that name is part of the approved introduction in data/msat_script.json, and it is not a per-work-item setting.",
       "properties": {
-        "call_id": { "type": "string" },
-        "phone_number": { "type": "string" },
-        "attempt": { "type": "integer" },
-        "language": { "type": "string" }
+        "call_id": {
+          "type": "string",
+          "description": "The platform's identifier for this call, e.g. rcm-2026-02-01-0001. Carried for correlation; the agent neither reads nor speaks it."
+        },
+        "phone_number": {
+          "type": "string",
+          "description": "The number dialled for this attempt."
+        },
+        "callback_number": {
+          "type": "string",
+          "description": "A number the member could be given to call back on, e.g. 800-678-0920. NOT yet spoken: no approved line offers one, and the agent does not invent contact details."
+        },
+        "attempt": {
+          "type": "integer",
+          "description": "Which attempt at this work item this call is."
+        },
+        "language": {
+          "type": "string",
+          "description": "BCP-47 tag, e.g. en-US. Recorded, not acted on — the script is transcribed in English only."
+        }
       }
     },
     "policyholder": {

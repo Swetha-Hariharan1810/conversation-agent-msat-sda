@@ -5,10 +5,3 @@
   "env": ".env",
   "image_distro": "wolfi"
 }
-
-"call_context": {
-      "call_id": "rcm-2026-02-01-0001",
-      "agent_name": "Angel",
-      "callback_number": "800-678-0920",
-      "language": "en-US"
-    }

@@ -1,4 +1,9 @@
-"""Structured result of reading one member turn."""
+"""Structured results the model returns about one member turn.
+
+Two of them, asked for separately and in this order: ``GuardAssessment`` decides
+whether the turn is something the survey cannot carry on through, and only if it
+is not does ``TurnDecision`` read the turn as an answer.
+"""
 
 from __future__ import annotations
 
@@ -27,6 +32,50 @@ class IdentityDetail(StrEnum):
     NONE = ""
     UNAVAILABLE = "unavailable"  # right household, wrong person, or they cannot come to the phone
     WRONG_NUMBER = "wrong_number"  # no such person here
+
+
+class GuardAssessment(BaseModel):
+    """Whether one member turn is something the survey cannot carry on through.
+
+    Five independent judgements rather than a single label, because a turn can be
+    more than one of them at once: "just put me through to somebody, and take me
+    off your list" is a request for a person *and* a request to stop calling.
+    Which one wins is not asked of the model — the precedence is written down in
+    ``core/guards.py``, where it can be read and tested.
+
+    Every field defaults to false. A model that returns nothing at all therefore
+    says "ordinary turn", which is both the common case and the safe one: the
+    survey carries on and the extractor still reads the turn.
+    """
+
+    safeguarding_concern: bool = Field(
+        default=False,
+        description=(
+            "true when anything they said suggests they may be at risk — harm to themselves, "
+            "harm or neglect by someone else, or a medical emergency. Err towards true."
+        ),
+    )
+    asks_for_representative: bool = Field(
+        default=False, description="true when they asked to be put through to a person, now"
+    )
+    voicemail_greeting: bool = Field(
+        default=False,
+        description=(
+            "true when this is a recorded greeting — an answering machine or a voicemail "
+            "service — rather than a person"
+        ),
+    )
+    asks_not_to_be_called: bool = Field(
+        default=False,
+        description=(
+            "true when they want the calls to stop altogether. Declining this survey, or asking "
+            "to be called back another time, is not this."
+        ),
+    )
+    asks_to_hold: bool = Field(
+        default=False,
+        description="true when they are stepping away for a moment and mean to come back",
+    )
 
 
 class TurnDecision(BaseModel):

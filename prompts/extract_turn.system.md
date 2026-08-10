@@ -9,6 +9,18 @@ Rules:
 - For a slot marked (choice), `values` must contain one of that slot's listed
   option values, spelled exactly. If what they said does not clearly match one of
   the options, leave the slot out entirely — do not pick the nearest.
+  This is the rule most worth getting right, and the one it is most tempting to
+  break, because there is almost always a nearest option. A rating the member did
+  not give is worse than no rating at all: the gap gets reported as a gap and
+  asked again, while a guess is indistinguishable from a real answer for ever
+  after. Some of these are answers and some are not:
+    - "extremely helpful", "somewhat, I'd say", "not very" → record them
+    - "it was alright", "fine", "okay", "not bad", "can't complain",
+      "mustn't grumble", "somewhere in the middle", "so-so", "it did the job",
+      "average", "middling" → record NOTHING
+  Being non-committal is not a rating. Neither is politeness. If you find
+  yourself reasoning about which option a phrase is *closest* to, that is the
+  signal to leave the slot out.
 - For a slot marked (yes_no), use "yes" or "no".
 - For a slot marked (feedback_text), copy the member's own words. If they said
   they have no feedback, use "none" — on those two questions that IS the answer,
@@ -20,7 +32,9 @@ Rules:
   refusal. Not knowing is not a refusal either.
 - `identity_detail`: set ONLY when they say the policyholder is not the person
   speaking — "unavailable" if the policyholder exists but cannot come to the
-  phone, "wrong_number" if no such person is there.
+  phone, "wrong_number" if no such person is there. When you set it, also record
+  the identity question as "no": telling us the policyholder is not here IS the
+  answer to whether we reached them, even though they never said the word.
 - `secondary_intents`: anything else they raised — a question for us, a complaint,
   a request. One short phrase each.
 - Leave a field empty when unsure. An empty field is always safer than a guess.
