@@ -52,9 +52,11 @@ def spec():
 
 # ── transcripts ──────────────────────────────────────────────────────────
 #
-# What was said is the run's real product; the pass/fail is a summary of it. The
-# recorder is filled by the tests and written once at the end, so a run that is
-# interrupted still leaves everything up to that point on disk.
+# What was said is the run's real product; the pass/fail is a summary of it.
+#
+# Each test's files are written as that test finishes — see transcript.py. A live
+# run is minutes of provider latency, and one that is interrupted or killed
+# halfway must still leave behind everything it got through.
 
 
 @pytest.fixture(scope="session")
@@ -76,27 +78,38 @@ def transcript(recorder, request) -> TestTranscript:
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
-    """Stamp each test's outcome onto its conversation.
+    """Write each test's conversation the moment that test finishes.
+
+    Not at the end of the session. A live run is minutes of provider latency, and
+    one that is interrupted, times out or is killed halfway must still leave
+    behind everything it got through — so nothing is buffered to an end the run
+    may never reach.
 
     A failure's transcript is the most useful thing in the directory, so the
-    outcome is recorded rather than the conversation dropped.
+    outcome is stamped on and the files are written either way.
     """
     report = (yield).get_result()
-    if report.when == "call":
-        keeper = getattr(item.session, "_msat_recorder", None)
-        if keeper is not None:
-            keeper.outcome(item.nodeid, report.outcome)
+    if report.when != "call":
+        return
+    keeper = getattr(item.session, "_msat_recorder", None)
+    if keeper is None:
+        return
+    written = keeper.complete(item.nodeid, report.outcome)
+    if written is not None and item.config.option.verbose > 0:
+        reporter = item.config.pluginmanager.get_plugin("terminalreporter")
+        if reporter is not None:
+            reporter.write_line(f"  ↳ {written.relative_to(keeper.directory)}")
 
 
 def pytest_sessionfinish(session, exitstatus):
     keeper = getattr(session, "_msat_recorder", None)
     if keeper is None:
         return
-    written = keeper.write()
-    if written is not None:
+    directory = keeper.finish()
+    if directory is not None:
         reporter = session.config.pluginmanager.get_plugin("terminalreporter")
         if reporter is not None:
-            reporter.write_line(f"\nconversations written to {written}")
+            reporter.write_line(f"\nconversations written to {directory} (see index.md)")
 
 
 @pytest.fixture(scope="session", autouse=True)
