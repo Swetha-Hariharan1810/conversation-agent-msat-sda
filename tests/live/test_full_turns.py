@@ -53,12 +53,35 @@ def _spoken(result: dict) -> str:
     return ""
 
 
+def _record(transcript, row, result: dict, agent, slot: str) -> None:
+    """Keep the exchange, including what the agent said back.
+
+    These are the only tests that produce an agent line — the layers below stop
+    at a decision — so this is where the transcript reads as a call rather than
+    as a judgement about one.
+    """
+    transcript.exchange(
+        scenario=row["id"],
+        caller=row.get("last_agent", ""),
+        member=row["member"],
+        reply=_spoken(result),
+        expected=row.get("expect") or {},
+        decided={
+            "recorded": {slot: agent.answer(slot)} if agent.answer(slot) else {},
+            "phase": result.get("phase", ""),
+            "disposition": result.get("disposition", ""),
+            "awaiting_next": result.get("awaiting_slot", ""),
+        },
+    )
+
+
 @pytest.mark.live
-async def test_an_ordinary_answer_is_recorded_and_the_survey_moves_on(client, spec):
+async def test_an_ordinary_answer_is_recorded_and_the_survey_moves_on(client, spec, transcript):
     row = TURNS["plain_yes"]
     slot = row["awaiting"]
     agent = MsatSurveyAgent(client=client, spec=spec)
     result = await agent.run(_state(spec, row["member"], awaiting=slot))
+    _record(transcript, row, result, agent, slot)
 
     assert agent.answer(slot) == row["expect"][slot], (
         f"{slot} should have been recorded as {row['expect'][slot]!r}, got {agent.answer(slot)!r}"
@@ -71,7 +94,7 @@ async def test_an_ordinary_answer_is_recorded_and_the_survey_moves_on(client, sp
 
 
 @pytest.mark.live
-async def test_a_safeguarding_turn_stops_the_survey_and_is_never_filed(client, spec):
+async def test_a_safeguarding_turn_stops_the_survey_and_is_never_filed(client, spec, transcript):
     """The ordering that matters most, end to end.
 
     The member's words here also contain a usable answer. They must not be
@@ -82,6 +105,7 @@ async def test_a_safeguarding_turn_stops_the_survey_and_is_never_filed(client, s
     slot = spec.question_slots[0]
     agent = MsatSurveyAgent(client=client, spec=spec)
     result = await agent.run(_state(spec, row["member"], awaiting=slot))
+    _record(transcript, row, result, agent, slot)
 
     assert not agent.answer(slot), "a safeguarding turn was filed as a survey answer"
     assert result.get("disposition") == "safeguarding_handoff", result.get("disposition")
@@ -91,12 +115,13 @@ async def test_a_safeguarding_turn_stops_the_survey_and_is_never_filed(client, s
 
 
 @pytest.mark.live
-async def test_a_hold_keeps_the_question_it_interrupted(client, spec):
+async def test_a_hold_keeps_the_question_it_interrupted(client, spec, transcript):
     """A pause must not cost the member the question they were part way through."""
     row = GUARDS["hold.door"]
     slot = spec.question_slots[0]
     agent = MsatSurveyAgent(client=client, spec=spec)
     result = await agent.run(_state(spec, row["member"], awaiting=slot))
+    _record(transcript, row, result, agent, slot)
 
     assert result.get("awaiting_slot", slot) == slot, "the pending question was dropped over a pause"
     assert _spoken(result).strip(), "the agent said nothing while the member stepped away"

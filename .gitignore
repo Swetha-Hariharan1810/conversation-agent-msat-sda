@@ -17,3 +17,9 @@ dist/
 .env
 .env.*
 !.env.example
+
+# Live-run transcripts. Generated on every `pytest tests/live` run and written
+# per-timestamp, so they would bury a diff. results/README.md says how to keep
+# one deliberately (git add -f).
+results/*
+!results/README.md

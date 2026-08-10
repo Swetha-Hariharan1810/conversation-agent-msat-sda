@@ -32,7 +32,7 @@ def _settled(slot: str, raw: str) -> str:
 
 @pytest.mark.live
 @pytest.mark.parametrize("row", TURNS, ids=ids(TURNS))
-async def test_the_turn_is_read_as_written(client, spec, row):
+async def test_the_turn_is_read_as_written(client, spec, transcript, row):
     awaiting = row.get("awaiting", "")
     for attempt in range(1, repeats() + 1):
         decision = await extract(
@@ -41,6 +41,29 @@ async def test_the_turn_is_read_as_written(client, spec, row):
             asked_slots=tuple(filter(None, [awaiting])),
             last_agent_message=row.get("last_agent", ""),
             member_text=row["member"],
+        )
+        # Before the assertions, so a turn that was read wrongly is legible in
+        # the transcript rather than only in a traceback.
+        transcript.exchange(
+            scenario=row["id"],
+            caller=row.get("last_agent", ""),
+            member=row["member"],
+            expected={
+                key: row[key]
+                for key in ("expect", "expect_absent", "expect_corrections", "expect_declines")
+                if key in row
+            },
+            decided={
+                "event": str(decision.event_type),
+                "recorded": {
+                    slot: _settled(slot, raw) for slot, raw in decision.values.items() if raw
+                },
+                "raw_values": decision.values,
+                "corrections": decision.corrections,
+                "declines": decision.declines_question,
+                "identity_detail": decision.identity_detail.value,
+                "secondary_intents": decision.secondary_intents,
+            },
         )
         context = (
             f"\nscenario : {row['id']}"

@@ -45,6 +45,20 @@ not set. Point the tests at a different file with `MSAT_ENV_FILE=/path/to/.env`.
 `OPENAI_API_VERSION` is required for Azure on purpose: without one the call fails
 with an error about the deployment, which sends you looking in the wrong place.
 
+## Every run writes what was said
+
+```
+conversations written to results/live/2026-08-10T09-26-23Z
+```
+
+The pass/fail is a summary; the exchange is the evidence. Each run leaves a
+`transcript.md` to read and a `run.json` to diff against the previous one, plus
+`results/live/latest.md`. Failures are kept and marked — a transcript is a better
+bug report than a traceback when the thing that failed was a judgement.
+
+The run directories are gitignored; `results/README.md` says how to keep one
+deliberately, and `MSAT_RESULTS_DIR` writes them elsewhere.
+
 ## What is here
 
 | | |

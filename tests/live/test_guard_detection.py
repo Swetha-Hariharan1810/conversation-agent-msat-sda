@@ -26,7 +26,7 @@ GUARDS = scenarios("guards")
 
 @pytest.mark.live
 @pytest.mark.parametrize("row", GUARDS, ids=ids(GUARDS))
-async def test_model_judges_the_turn(client, row):
+async def test_model_judges_the_turn(client, transcript, row):
     """The model's own verdict, with no patterns and no precedence involved."""
     expected = row["expect_model"]
     for attempt in range(1, repeats() + 1):
@@ -34,6 +34,18 @@ async def test_model_judges_the_turn(client, row):
             client, last_agent_message=row.get("last_agent", ""), member_text=row["member"]
         )
         got = resolve(assessment)
+        # Recorded before the assertion: a failed judgement is the exchange most
+        # worth reading afterwards, and an assert that fires first loses it.
+        transcript.exchange(
+            scenario=row["id"],
+            caller=row.get("last_agent", ""),
+            member=row["member"],
+            expected={"guard": expected or None},
+            decided={
+                "guard": got or None,
+                "flags": sorted(name for name, on in assessment.model_dump().items() if on),
+            },
+        )
         assert got == expected, (
             f"\nscenario : {row['id']}"
             f"\nattempt  : {attempt}"
@@ -54,13 +66,24 @@ async def test_model_judges_the_turn(client, row):
 
 @pytest.mark.live
 @pytest.mark.parametrize("row", GUARDS, ids=ids(GUARDS))
-async def test_call_acts_on_the_turn(client, spec, row):
+async def test_call_acts_on_the_turn(client, spec, transcript, row):
     """The whole guard: model, patterns and precedence together."""
     agent = MsatSurveyAgent(client=client, spec=spec)
     expected = row["expect_call"]
     for attempt in range(1, repeats() + 1):
         outcome = await agent.check_guards(
             {"ambiguous_counts": {}}, row["member"], row.get("last_agent", "")
+        )
+        transcript.exchange(
+            scenario=row["id"],
+            caller=row.get("last_agent", ""),
+            member=row["member"],
+            expected={"guard": expected or None},
+            decided={
+                "guard": outcome.kind or None,
+                "patterns": match_patterns(row["member"]) or None,
+                "ends_the_call": outcome.handled,
+            },
         )
         assert outcome.kind == expected, (
             f"\nscenario : {row['id']}"
