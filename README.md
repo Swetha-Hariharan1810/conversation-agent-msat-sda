@@ -56,11 +56,17 @@ local checkpointer so persistence is platform-managed. In-process callers use
 ## Input and output
 
 Input follows this payload shape, validated against `data/input_schema.json`.
-The work item brings exactly two facts to the call:
+The work item brings exactly two facts *to the call itself*:
 
 ```json
 {
   "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+  "call_context": {
+    "call_id": "rcm-2026-02-01-0001",
+    "agent_name": "Angel",
+    "callback_number": "800-678-0920",
+    "language": "en-US"
+  },
   "policyholder": {
     "first_name": "Margaret",
     "last_name": "Ellison",
@@ -68,6 +74,20 @@ The work item brings exactly two facts to the call:
   }
 }
 ```
+
+`call_context` is the frame around the call rather than part of it: which call
+this is, on what line, in whose name. Only `policyholder` reaches what the agent
+says or asks. Two of its fields are declared and deliberately **not** acted on
+yet, and the schema says so on each:
+
+| | |
+|---|---|
+| `agent_name` | The introduction is approved wording and says "Ida". A work item naming anyone else is ignored, not obeyed — see below |
+| `callback_number` | No approved line offers a number to call back on, and the agent does not invent contact details |
+
+Declaring them is worth doing anyway: it is what makes the field an interface the
+platform can start sending, rather than one it has to get permission for later.
+Both are one binding away from being live once the wording exists.
 
 `risk_tier` decides whether question 5 is asked. It is never inferred and nothing
 said on the call can change it; a work item that does not carry one is reported
