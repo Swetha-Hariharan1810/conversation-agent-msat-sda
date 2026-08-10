@@ -64,7 +64,6 @@ Each entry is one test, and inside it each exchange the test put to the model:
 >              from the team onto the call who can help — please hold the line.
 
 - decided: `{"recorded": {}, "phase": "done", "disposition": "safeguarding_handoff"}`
-- took: 1.8s
 ```
 
 The second caller line only appears where the test ran a whole turn through the
@@ -72,9 +71,25 @@ agent — `test_full_turns.py`. The guard and extraction tests stop at a decisio
 so their entries are the caller's question, the member's reply, and what was made
 of it.
 
-`took` is measured from the start of the test. With the default
-`MSAT_LIVE_REPEAT=1` that is the round trip; raise the repeat count and it
-becomes cumulative.
+## Timing is per turn
+
+The number beside each turn is how long **that turn** took — one agent turn and
+its model calls on a whole call, one round trip on a single-turn test. It is not
+a running total.
+
+That is the number worth reading. A call is a conversation with somebody waiting
+on the other end, so the question is whether any single turn left them listening
+to silence, not what the run added up to. Each transcript's header gives the
+**slowest turn** first for the same reason, and `index.md` carries a slowest-turn
+column so a bad one can be spotted without opening anything:
+
+```
+| # | | test | turns | slowest turn | transcript |
+| 4 | ✓ | ...[safeguarding_stops_the_survey_mid_call] | 6 | 2.41s | 004__....md |
+```
+
+The JSON keeps `at_s` alongside it — the offset into the test — so two runs of
+the same scenario can be lined up turn for turn.
 
 ## These are not committed
 

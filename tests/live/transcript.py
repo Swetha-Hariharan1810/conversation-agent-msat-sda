@@ -61,7 +61,8 @@ class Exchange:
     decided: dict = field(default_factory=dict)
     expected: dict = field(default_factory=dict)
     reply: str = ""
-    elapsed_s: float = 0.0
+    took_s: float = 0.0  # this turn alone
+    at_s: float = 0.0  # where it fell in the test, for lining two runs up
 
 
 @dataclass
@@ -153,8 +154,8 @@ class Recorder:
                     "Written as the run goes. A row appears here the moment its test finishes,",
                     "so an interrupted run still accounts for everything it got through.",
                     "",
-                    "| # | | test | turns | transcript |",
-                    "|---:|:-:|---|---:|---|",
+                    "| # | | test | turns | slowest turn | transcript |",
+                    "|---:|:-:|---|---:|---:|---|",
                     "",
                 ]
             ),
@@ -188,9 +189,14 @@ class Recorder:
 
     def _append_index_row(self, conversation: Conversation) -> None:
         relative = conversation.path.relative_to(self.directory)
+        timed = [turn.took_s for turn in conversation.exchanges if turn.took_s]
+        # The slowest turn, not the total: what matters on a call is whether any
+        # single turn left the member listening to silence.
+        slowest = f"{max(timed):.2f}s" if timed else "—"
         row = (
             f"| {conversation.index} | {MARK.get(conversation.outcome, '?')} "
-            f"| `{conversation.test}` | {len(conversation.exchanges)} | [{relative.name}]({relative}) |\n"
+            f"| `{conversation.test}` | {len(conversation.exchanges)} | {slowest} "
+            f"| [{relative.name}]({relative}) |\n"
         )
         with (self.directory / "index.md").open("a", encoding="utf-8") as handle:
             handle.write(row)
@@ -211,23 +217,33 @@ class Recorder:
 
     def _markdown(self, conversation: Conversation) -> str:
         mark = MARK.get(conversation.outcome, "?")
+        turns = conversation.exchanges
         lines = [
             f"# {mark} {conversation.test}",
             "",
             " · ".join(f"**{key}** {value}" for key, value in self.context.items()) or "_no context_",
             "",
-            f"{len(conversation.exchanges)} exchanges — **{conversation.outcome}**",
+            f"{len(turns)} turns — **{conversation.outcome}**{self._timing(turns)}",
             "",
             "---",
             "",
         ]
-        for exchange in conversation.exchanges:
-            lines += self._exchange_lines(exchange)
+        for number, exchange in enumerate(turns, start=1):
+            lines += self._exchange_lines(number, exchange)
         return "\n".join(lines)
 
     @staticmethod
-    def _exchange_lines(exchange: Exchange) -> list[str]:
-        lines = [f"**{exchange.scenario}**", ""]
+    def _timing(turns: list[Exchange]) -> str:
+        """Slowest turn first — the one a member would have noticed."""
+        timed = [turn.took_s for turn in turns if turn.took_s]
+        if not timed:
+            return ""
+        return f" · slowest turn {max(timed):.2f}s · whole call {sum(timed):.2f}s"
+
+    @staticmethod
+    def _exchange_lines(number: int, exchange: Exchange) -> list[str]:
+        took = f" · {exchange.took_s:.2f}s" if exchange.took_s else ""
+        lines = [f"**{number}. {exchange.scenario}**{took}", ""]
         if exchange.caller:
             lines += [f"> **{CALLER}** — {exchange.caller}", ">"]
         lines += [f"> **{MEMBER}** — {exchange.member}", ""]
@@ -237,8 +253,6 @@ class Recorder:
             lines += [f"- expected: `{_compact(exchange.expected)}`"]
         if exchange.decided:
             lines += [f"- decided: `{_compact(exchange.decided)}`"]
-        if exchange.elapsed_s:
-            lines += [f"- took: {exchange.elapsed_s:.1f}s"]
         lines += [""]
         return lines
 
@@ -271,11 +285,11 @@ class Recorder:
 class TestTranscript:
     """The handle a single test writes through."""
 
-    __slots__ = ("_conversation", "_t0")
+    __slots__ = ("_conversation", "_t0", "_previous")
 
     def __init__(self, conversation: Conversation) -> None:
         self._conversation = conversation
-        self._t0 = time.monotonic()
+        self._t0 = self._previous = time.monotonic()
 
     def exchange(
         self,
@@ -287,12 +301,19 @@ class TestTranscript:
         expected: dict | None = None,
         reply: str = "",
     ) -> None:
-        """Record one exchange. Timing is measured from the start of the test.
+        """Record one exchange, timed on its own.
 
-        With the default ``MSAT_LIVE_REPEAT=1`` that is the round trip. Raise the
-        repeat count and it becomes cumulative, which is what you want when the
-        question is whether the whole scenario stays inside a human pause.
+        ``took_s`` is how long THIS turn took — the gap since the previous
+        exchange was recorded, which on a whole call is one agent turn and its
+        model calls, and on a single-turn test is the one round trip. That is the
+        number worth reading: a call is a conversation with a person waiting on
+        the other end, and the question is always whether any one turn left them
+        listening to silence, not what the run added up to.
+
+        ``at_s`` keeps the offset into the test, so two runs of the same scenario
+        can still be lined up turn for turn.
         """
+        now = time.monotonic()
         self._conversation.exchanges.append(
             Exchange(
                 scenario=scenario,
@@ -301,6 +322,8 @@ class TestTranscript:
                 decided=decided or {},
                 expected=expected or {},
                 reply=reply,
-                elapsed_s=round(time.monotonic() - self._t0, 3),
+                took_s=round(now - self._previous, 3),
+                at_s=round(now - self._t0, 3),
             )
         )
+        self._previous = now
