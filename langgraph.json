@@ -6,9 +6,77 @@
   "image_distro": "wolfi"
 }
 
-"call_context": {
-      "call_id": "rcm-2026-02-01-0001",
-      "agent_name": "Angel",
-      "callback_number": "800-678-0920",
-      "language": "en-US"
-    }
+(conversation-agent-msat-sda) root@sh-dev-vm2-cpu:/home/azureuser/PCA/conversation-agent-msat-sda# MSAT_LIVE_TESTS=1 uv run pytest tests/live -v
+======================================= test session starts =======================================
+platform linux -- Python 3.13.12, pytest-8.4.2, pluggy-1.6.0 -- /home/azureuser/PCA/conversation-agent-msat-sda/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/azureuser/PCA/conversation-agent-msat-sda
+configfile: pyproject.toml
+plugins: anyio-4.14.2, langsmith-0.10.16, asyncio-0.26.0
+asyncio: mode=Mode.AUTO, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 62 items                                                                                
+
+tests/live/test_full_turns.py::test_an_ordinary_answer_is_recorded_and_the_survey_moves_on SKIPPED [  1%]
+tests/live/test_full_turns.py::test_a_safeguarding_turn_stops_the_survey_and_is_never_filed SKIPPED [  3%]
+tests/live/test_full_turns.py::test_a_hold_keeps_the_question_it_interrupted SKIPPED (M...) [  4%]
+tests/live/test_guard_detection.py::test_model_judges_the_turn[safeguarding.hopelessness_oblique] SKIPPED [  6%]
+tests/live/test_guard_detection.py::test_model_judges_the_turn[safeguarding.bereavement_withdrawal] SKIPPED [  8%]
+tests/live/test_guard_detection.py::test_model_judges_the_turn[safeguarding.medical_in_progress] SKIPPED [  9%]
+tests/live/test_guard_detection.py::test_model_judges_the_turn[safeguarding.financial_abuse] SKIPPED [ 11%]
+tests/live/test_guard_detection.py::test_model_judges_the_turn[safeguarding.beats_do_not_call] SKIPPED [ 12%]
+tests/live/test_guard_detection.py::test_model_judges_the_turn[representative.polite_indirect] SKIPPED [ 14%]
+tests/live/test_guard_detection.py::test_model_judges_the_turn[representative.plain] SKIPPED [ 16%]
+tests/live/test_guard_detection.py::test_model_judges_the_turn[representative.beats_do_not_call] SKIPPED [ 17%]
+tests/live/test_guard_detection.py::test_model_judges_the_turn[voicemail.personal_greeting] SKIPPED [ 19%]
+tests/live/test_guard_detection.py::test_model_judges_the_turn[voicemail.carrier_announcement] SKIPPED [ 20%]
+tests/live/test_guard_detection.py::test_model_judges_the_turn[do_not_call.plain] SKIPPED   [ 22%]
+tests/live/test_guard_detection.py::test_model_judges_the_turn[do_not_call.oblique] SKIPPED [ 24%]
+tests/live/test_guard_detection.py::test_model_judges_the_turn[hold.door] SKIPPED (MSAT...) [ 25%]
+tests/live/test_guard_detection.py::test_model_judges_the_turn[hold.oblique] SKIPPED (M...) [ 27%]
+tests/live/test_guard_detection.py::test_model_judges_the_turn[clear.figure_of_speech] SKIPPED [ 29%]
+tests/live/test_guard_detection.py::test_model_judges_the_turn[clear.staff_answer_not_a_request] SKIPPED [ 30%]
+tests/live/test_guard_detection.py::test_model_judges_the_turn[clear.declining_is_not_do_not_call] SKIPPED [ 32%]
+tests/live/test_guard_detection.py::test_model_judges_the_turn[clear.reschedule_is_not_do_not_call] SKIPPED [ 33%]
+tests/live/test_guard_detection.py::test_model_judges_the_turn[clear.person_answering_normally] SKIPPED [ 35%]
+tests/live/test_guard_detection.py::test_model_judges_the_turn[clear.mentioning_a_person] SKIPPED [ 37%]
+tests/live/test_guard_detection.py::test_model_judges_the_turn[clear.refusing_one_question] SKIPPED [ 38%]
+tests/live/test_guard_detection.py::test_model_judges_the_turn[clear.unhappy_but_not_at_risk] SKIPPED [ 40%]
+tests/live/test_guard_detection.py::test_model_judges_the_turn[cost.fallen_behind_trips_the_floor] SKIPPED [ 41%]
+tests/live/test_guard_detection.py::test_call_acts_on_the_turn[safeguarding.hopelessness_oblique] SKIPPED [ 43%]
+tests/live/test_guard_detection.py::test_call_acts_on_the_turn[safeguarding.bereavement_withdrawal] SKIPPED [ 45%]
+tests/live/test_guard_detection.py::test_call_acts_on_the_turn[safeguarding.medical_in_progress] SKIPPED [ 46%]
+tests/live/test_guard_detection.py::test_call_acts_on_the_turn[safeguarding.financial_abuse] SKIPPED [ 48%]
+tests/live/test_guard_detection.py::test_call_acts_on_the_turn[safeguarding.beats_do_not_call] SKIPPED [ 50%]
+tests/live/test_guard_detection.py::test_call_acts_on_the_turn[representative.polite_indirect] SKIPPED [ 51%]
+tests/live/test_guard_detection.py::test_call_acts_on_the_turn[representative.plain] SKIPPED [ 53%]
+tests/live/test_guard_detection.py::test_call_acts_on_the_turn[representative.beats_do_not_call] SKIPPED [ 54%]
+tests/live/test_guard_detection.py::test_call_acts_on_the_turn[voicemail.personal_greeting] SKIPPED [ 56%]
+tests/live/test_guard_detection.py::test_call_acts_on_the_turn[voicemail.carrier_announcement] SKIPPED [ 58%]
+tests/live/test_guard_detection.py::test_call_acts_on_the_turn[do_not_call.plain] SKIPPED   [ 59%]
+tests/live/test_guard_detection.py::test_call_acts_on_the_turn[do_not_call.oblique] SKIPPED [ 61%]
+tests/live/test_guard_detection.py::test_call_acts_on_the_turn[hold.door] SKIPPED (MSAT...) [ 62%]
+tests/live/test_guard_detection.py::test_call_acts_on_the_turn[hold.oblique] SKIPPED (M...) [ 64%]
+tests/live/test_guard_detection.py::test_call_acts_on_the_turn[clear.figure_of_speech] SKIPPED [ 66%]
+tests/live/test_guard_detection.py::test_call_acts_on_the_turn[clear.staff_answer_not_a_request] SKIPPED [ 67%]
+tests/live/test_guard_detection.py::test_call_acts_on_the_turn[clear.declining_is_not_do_not_call] SKIPPED [ 69%]
+tests/live/test_guard_detection.py::test_call_acts_on_the_turn[clear.reschedule_is_not_do_not_call] SKIPPED [ 70%]
+tests/live/test_guard_detection.py::test_call_acts_on_the_turn[clear.person_answering_normally] SKIPPED [ 72%]
+tests/live/test_guard_detection.py::test_call_acts_on_the_turn[clear.mentioning_a_person] SKIPPED [ 74%]
+tests/live/test_guard_detection.py::test_call_acts_on_the_turn[clear.refusing_one_question] SKIPPED [ 75%]
+tests/live/test_guard_detection.py::test_call_acts_on_the_turn[clear.unhappy_but_not_at_risk] SKIPPED [ 77%]
+tests/live/test_guard_detection.py::test_call_acts_on_the_turn[cost.fallen_behind_trips_the_floor] SKIPPED [ 79%]
+tests/live/test_turn_reading.py::test_the_turn_is_read_as_written[plain_yes] SKIPPED (M...) [ 80%]
+tests/live/test_turn_reading.py::test_the_turn_is_read_as_written[choice_spoken_loosely] SKIPPED [ 82%]
+tests/live/test_turn_reading.py::test_the_turn_is_read_as_written[choice_too_vague_to_record] SKIPPED [ 83%]
+tests/live/test_turn_reading.py::test_the_turn_is_read_as_written[choice_adjacent_but_unsaid] SKIPPED [ 85%]
+tests/live/test_turn_reading.py::test_the_turn_is_read_as_written[choice_the_member_did_give] SKIPPED [ 87%]
+tests/live/test_turn_reading.py::test_the_turn_is_read_as_written[no_feedback_is_an_answer] SKIPPED [ 88%]
+tests/live/test_turn_reading.py::test_the_turn_is_read_as_written[refusal_is_not_an_answer] SKIPPED [ 90%]
+tests/live/test_turn_reading.py::test_the_turn_is_read_as_written[answers_two_questions_at_once] SKIPPED [ 91%]
+tests/live/test_turn_reading.py::test_the_turn_is_read_as_written[correction_reopens_a_branch] SKIPPED [ 93%]
+tests/live/test_turn_reading.py::test_the_turn_is_read_as_written[not_knowing_is_not_refusing] SKIPPED [ 95%]
+tests/live/test_turn_reading.py::test_the_turn_is_read_as_written[wrong_number] SKIPPED     [ 96%]
+tests/live/test_turn_reading.py::test_the_turn_is_read_as_written[policyholder_unavailable] SKIPPED [ 98%]
+tests/live/test_turn_reading.py::test_the_turn_is_read_as_written[question_back_is_not_a_failure_to_answer] SKIPPED [100%]
+
+======================================= 62 skipped in 0.20s =======================================
