@@ -63,7 +63,6 @@ The work item brings exactly two facts *to the call itself*:
   "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
   "call_context": {
     "call_id": "rcm-2026-02-01-0001",
-    "agent_name": "Angel",
     "callback_number": "800-678-0920",
     "language": "en-US"
   },
@@ -76,18 +75,15 @@ The work item brings exactly two facts *to the call itself*:
 ```
 
 `call_context` is the frame around the call rather than part of it: which call
-this is, on what line, in whose name. Only `policyholder` reaches what the agent
-says or asks. Two of its fields are declared and deliberately **not** acted on
-yet, and the schema says so on each:
+this is, on what line, in what language. Only `policyholder` reaches what the
+agent says or asks. `callback_number` is declared but deliberately **not** spoken
+— no approved line offers a number to call back on, and the agent does not invent
+contact details. It is one binding away from being live once such a line exists.
 
-| | |
-|---|---|
-| `agent_name` | The introduction is approved wording and says "Ida". A work item naming anyone else is ignored, not obeyed — see below |
-| `callback_number` | No approved line offers a number to call back on, and the agent does not invent contact details |
-
-Declaring them is worth doing anyway: it is what makes the field an interface the
-platform can start sending, rather than one it has to get permission for later.
-Both are one binding away from being live once the wording exists.
+There is no `agent_name` field, on purpose. The caller is Ida; that name is part
+of the approved introduction in `data/msat_script.json` and of who the agent is
+in `prompts/speak_line.system.md`. It is not a per-work-item setting, and a
+payload field implying otherwise would be an invitation to change it by accident.
 
 `risk_tier` decides whether question 5 is asked. It is never inferred and nothing
 said on the call can change it; a work item that does not carry one is reported

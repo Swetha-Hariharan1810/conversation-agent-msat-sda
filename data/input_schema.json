@@ -11,15 +11,11 @@
     },
     "call_context": {
       "type": "object",
-      "description": "The frame around the call — which call this is, on what line, in whose name. None of it is survey content and none of it gates a question. Two fields are declared here but NOT yet acted on; each says so, because a work item that sets one and sees no effect is worse than one the schema never accepted.",
+      "description": "The frame around the call — which call this is, on what line, in what language. None of it is survey content and none of it gates a question. There is deliberately no agent_name field: the caller is Ida, that name is part of the approved introduction in data/msat_script.json, and it is not a per-work-item setting.",
       "properties": {
         "call_id": {
           "type": "string",
           "description": "The platform's identifier for this call, e.g. rcm-2026-02-01-0001. Carried for correlation; the agent neither reads nor speaks it."
-        },
-        "agent_name": {
-          "type": "string",
-          "description": "The name the caller introduces itself by. NOT yet spoken. The introduction is approved wording in data/msat_script.json and says 'Ida'; a work item naming anyone else is currently ignored rather than obeyed, because changing what the agent calls itself means changing an approved line."
         },
         "phone_number": {
           "type": "string",
