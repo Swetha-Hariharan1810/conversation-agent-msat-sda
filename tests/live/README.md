@@ -19,6 +19,32 @@ Without `MSAT_LIVE_TESTS=1` the whole directory skips and says so. With the flag
 but no credentials it skips and names the missing variable, rather than failing
 as though the prompt were wrong.
 
+## Credentials
+
+They come from `.env` at the repo root — the same file `langgraph.json` points
+at — which the tests load themselves. That matters: under `langgraph dev` the
+server reads `.env` for you, so nothing else in this project ever had to, and a
+test gate built on `os.getenv` alone would report "no credentials" to somebody
+looking straight at theirs. An exported variable beats the file.
+
+Every run prints what the gate found, before the first test:
+
+```
+live tests: MSAT_LIVE_TESTS=on, provider=azure_openai, loaded /repo/.env, missing=nothing
+```
+
+If a run skips everything, that line says why. `missing=['OPENAI_API_KEY']` with
+`provider=openai` when your `.env` is full of `AZURE_*` means `LLM_PROVIDER` is
+not set. Point the tests at a different file with `MSAT_ENV_FILE=/path/to/.env`.
+
+| provider | needs |
+|---|---|
+| `openai` (default) | `OPENAI_API_KEY` |
+| `azure_openai` | `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, `OPENAI_API_VERSION` |
+
+`OPENAI_API_VERSION` is required for Azure on purpose: without one the call fails
+with an error about the deployment, which sends you looking in the wrong place.
+
 ## What is here
 
 | | |

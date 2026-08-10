@@ -11,9 +11,9 @@ import json
 import os
 from pathlib import Path
 
-SCENARIO_DIR = Path(__file__).parent / "scenarios"
+from .environment import REPEAT_VAR
 
-REPEAT_ENV = "MSAT_LIVE_REPEAT"
+SCENARIO_DIR = Path(__file__).parent / "scenarios"
 
 
 def scenarios(name: str) -> list[dict]:
@@ -45,6 +45,6 @@ def repeats() -> int:
     guard, and a single green run is exactly how that stays unnoticed.
     """
     try:
-        return max(1, int(os.getenv(REPEAT_ENV, "1")))
+        return max(1, int(os.getenv(REPEAT_VAR, "1")))
     except ValueError:
         return 1

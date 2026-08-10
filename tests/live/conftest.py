@@ -6,44 +6,34 @@ asked for it:
 
     MSAT_LIVE_TESTS=1 uv run pytest tests/live -v
 
-Without the flag the whole directory skips with the reason printed, rather than
-erroring or — worse — passing quietly against a stub and being mistaken for
-evidence that the prompts work.
+Without the flag the whole directory skips and says so, rather than erroring or —
+worse — passing quietly against a stub and being mistaken for evidence that the
+prompts work.
 
-Credentials come from the environment exactly as they do on a call, so a live run
-exercises the same ``LLMClient`` the agent uses against the same deployment.
+Credentials, and the ``.env`` file they usually live in, are handled in
+``environment.py``; the skip messages below quote what it found so a directory
+that skips entirely explains itself on the spot.
 """
 
 from __future__ import annotations
-
-import os
 
 import pytest
 
 from msat_flow.llm.client import LLMClient
 from msat_flow.script.spec import load_spec
 
-FLAG = "MSAT_LIVE_TESTS"
-_TRUTHY = {"1", "true", "yes", "on"}
-
-
-def _missing_credentials() -> list[str]:
-    """What the configured provider needs from the environment and has not got."""
-    provider = os.getenv("LLM_PROVIDER", "openai").lower()
-    needed = (
-        ("AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_API_KEY")
-        if provider.startswith("azure")
-        else ("OPENAI_API_KEY",)
-    )
-    return [name for name in needed if not os.getenv(name)]
+from . import environment as env
 
 
 def pytest_runtest_setup(item: pytest.Item) -> None:
-    if os.getenv(FLAG, "").strip().lower() not in _TRUTHY:
-        pytest.skip(f"live tests are opt-in — set {FLAG}=1 to run them against a real provider")
-    missing = _missing_credentials()
-    if missing:
-        pytest.skip(f"{FLAG} is set but the provider is not configured: missing {', '.join(missing)}")
+    if not env.enabled():
+        pytest.skip(f"live tests are opt-in — set {env.FLAG}=1 to run them against a real provider")
+    absent = env.missing()
+    if absent:
+        pytest.skip(
+            f"{env.FLAG} is set, but LLM_PROVIDER={env.provider()!r} still needs "
+            f"{', '.join(absent)}. Env file: {env.env_file_state()}."
+        )
 
 
 @pytest.fixture(scope="session")
