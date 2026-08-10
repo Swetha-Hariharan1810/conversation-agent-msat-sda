@@ -51,13 +51,24 @@ with an error about the deployment, which sends you looking in the wrong place.
 ## Every run writes what was said
 
 ```
-conversations written to results/live/2026-08-10T09-26-23Z
+conversations written to results/live/2026-08-10T09-26-23Z (see index.md)
 ```
 
-The pass/fail is a summary; the exchange is the evidence. Each run leaves a
-`transcript.md` to read and a `run.json` to diff against the previous one, plus
-`results/live/latest.md`. Failures are kept and marked — a transcript is a better
-bug report than a traceback when the thing that failed was a judgement.
+The pass/fail is a summary; the exchange is the evidence. **Each test gets its
+own** `.md` to read and `.json` to diff, grouped by module and numbered in run
+order, under a directory named for when the run started
+(`results/live/latest` points at the newest). Failures are kept and marked — a
+transcript is a better bug report than a traceback when the thing that failed
+was a judgement.
+
+Files are written **as each test finishes**, not at the end. A full live run is
+several minutes of provider latency, and one that is interrupted must still keep
+what it got through. `index.md` grows a row at a time, so a long run can be
+watched from another terminal:
+
+```bash
+tail -f results/live/latest/index.md
+```
 
 The run directories are gitignored; `results/README.md` says how to keep one
 deliberately, and `MSAT_RESULTS_DIR` writes them elsewhere.
