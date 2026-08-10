@@ -5,3 +5,20 @@
   "env": ".env",
   "image_distro": "wolfi"
 }
+
+tests/live/test_turn_reading.py:81: AssertionError
+===================================== short test summary info =====================================
+FAILED tests/live/test_guard_detection.py::test_model_judges_the_turn[voicemail.personal_greeting] - AssertionError: 
+FAILED tests/live/test_guard_detection.py::test_model_judges_the_turn[voicemail.carrier_announcement] - AssertionError: 
+FAILED tests/live/test_guard_detection.py::test_model_judges_the_turn[hold.oblique] - AssertionError: 
+FAILED tests/live/test_guard_detection.py::test_model_judges_the_turn[clear.reschedule_is_not_do_not_call] - AssertionError: 
+FAILED tests/live/test_guard_detection.py::test_model_judges_the_turn[clear.unhappy_but_not_at_risk] - AssertionError: 
+FAILED tests/live/test_guard_detection.py::test_call_acts_on_the_turn[voicemail.personal_greeting] - AssertionError: 
+FAILED tests/live/test_guard_detection.py::test_call_acts_on_the_turn[hold.oblique] - AssertionError: 
+FAILED tests/live/test_guard_detection.py::test_call_acts_on_the_turn[clear.reschedule_is_not_do_not_call] - AssertionError: 
+FAILED tests/live/test_guard_detection.py::test_call_acts_on_the_turn[clear.unhappy_but_not_at_risk] - AssertionError: 
+FAILED tests/live/test_turn_reading.py::test_the_turn_is_read_as_written[choice_too_vague_to_record] - AssertionError: 
+FAILED tests/live/test_turn_reading.py::test_the_turn_is_read_as_written[choice_adjacent_but_unsaid] - AssertionError: 
+FAILED tests/live/test_turn_reading.py::test_the_turn_is_read_as_written[no_feedback_is_an_answer] - AssertionError: 
+FAILED tests/live/test_turn_reading.py::test_the_turn_is_read_as_written[wrong_number] - AssertionError: 
+FAILED tests/live/test_turn_reading.py::test_the_turn_is_read_as_written[policyholder_unavailable] - AssertionError: 
