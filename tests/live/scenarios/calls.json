@@ -2,7 +2,7 @@
   "_readme": [
     "Whole calls, driven end to end against a real provider.",
     "",
-    "The other scenario files put ONE turn to the model. These run a call from the",
+    "Every live test but guard detection is here. These run a call from the",
     "greeting to the closing line — every question, every model call, the real",
     "planner deciding what comes next — and check what came out the other end.",
     "That is the only place several things can be seen at all: that question 1a is",
@@ -23,13 +23,17 @@
     "  expect.not_asked     slots the member must never be asked for",
     "  expect.skipped       slots the outcome must report as skipped",
     "  expect.not_declined  slots the outcome must NOT report as declined",
+    "  expect.reported_intents      kinds that MUST reach the outcome's open_intents",
+    "  expect.not_reported_intents  kinds that must NOT be in it",
     "",
     "A guard mid-call needs no special mechanism: make the guard line the reply to",
     "whichever question it should interrupt.",
     "",
-    "These cost far more than the single-turn scenarios — a whole call is roughly",
-    "ten agent turns and up to three model calls each. Run this file on its own",
-    "when that matters: pytest tests/live/test_full_calls.py",
+    "A call is expensive — roughly ten agent turns and up to three model calls",
+    "each — so a scenario is worth adding when it shows something a shorter one",
+    "cannot, and worth loading up when it can: several of these carry four or five",
+    "unrelated rules on different questions of the same survey, because the member",
+    "is answering nine questions either way.",
     "",
     "One rule about the replies: keep the GATES unambiguous. Identity and consent",
     "are not what these calls are testing, and a gate that fails ends the call",
@@ -461,6 +465,228 @@
         "",
         "The 'yes' at the end is the one that matters: a clarifying question must never",
         "be guessed into an answer, and the answer that eventually comes must still land."
+      ]
+    },
+    {
+      "id": "nothing_here_is_a_refusal",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "rcm-live-012",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, that's fine.",
+        "reviewed_resources": "Yes I did, and they were somewhat helpful actually — I've started walking every morning because of them.",
+        "improvement_feedback": "No, nothing I can think of.",
+        "liked_most": "The walking, mostly.",
+        "would_recommend": [
+          "I honestly couldn't tell you. I don't really know anyone who'd need it.",
+          "Yes, alright — I would."
+        ],
+        "staff_helpful": "Yes, they were good with me.",
+        "overall_experience": [
+          "Oh, it was alright I suppose. Can't complain.",
+          "Extremely helpful, really. It changed how I eat."
+        ]
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": {
+          "reviewed_resources": "yes",
+          "resource_helpfulness": "somewhat_helpful",
+          "overall_experience": "extremely_helpful"
+        },
+        "not_declined": [
+          "improvement_feedback",
+          "would_recommend",
+          "overall_experience"
+        ],
+        "not_asked": [
+          "no_review_reason"
+        ]
+      },
+      "why": [
+        "One call carrying four things that are each not what they look like, because",
+        "each one used to be reported as a member who would not answer:",
+        "",
+        "  - answering 1a and 1b in one breath. Both must land, and 1b must not be put",
+        "    again to somebody who has already answered it.",
+        "  - 'no, nothing I can think of' on a feedback question IS the answer.",
+        "  - 'I couldn't tell you' is not knowing, not refusing. It is re-asked.",
+        "  - 'it was alright, can't complain' is not a rating. The nearest option is",
+        "    somewhat_helpful and recording it would put a rating in this member's file",
+        "    that she never gave — so the turn records NOTHING and the rating that",
+        "    arrives second is the one reported.",
+        "",
+        "The restraint is the load-bearing half and the hard half: there is always a",
+        "nearest option. What proves it end to end is that overall_experience comes out",
+        "extremely_helpful — the answer she gave — and not somewhat_helpful, the answer",
+        "she was nearest to."
+      ]
+    },
+    {
+      "id": "a_correction_reopens_the_other_branch",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "rcm-live-013",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, go on.",
+        "reviewed_resources": "Yes, I had a look at some of them.",
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": [
+          "Actually, hang on — I said I'd looked at the resources, but I never did get round to opening any of them.",
+          "More phone calls would help, I think."
+        ],
+        "no_review_reason": "I never had the time, if I'm honest.",
+        "liked_most": "The nurse was kind.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful."
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": {
+          "reviewed_resources": "no"
+        },
+        "skipped": [
+          "resource_helpfulness"
+        ],
+        "not_declined": [
+          "improvement_feedback"
+        ]
+      },
+      "why": [
+        "A member correcting an answer four questions after she gave it, which no other",
+        "whole call does.",
+        "",
+        "Three things have to happen at once and only a whole call shows them together:",
+        "the revision arrives as a correction rather than as a fresh value, question 1b",
+        "opens because the answer that closed it has changed, and the helpfulness rating",
+        "she already gave is dropped rather than left behind on a question this member",
+        "is no longer being asked. A rating for resources she never opened is worse than",
+        "no rating, and it is invisible in the answers unless something checks that it",
+        "went.",
+        "",
+        "It must also not cost her the question she was actually asked: correcting an",
+        "earlier answer is a contribution, not a failure to answer improvement_feedback."
+      ]
+    },
+    {
+      "id": "raises_three_things_alongside_the_survey",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "rcm-live-014",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, that's fine.",
+        "reviewed_resources": "Yes, a few of the articles. Sorry — my daughter's just arrived, she visits on Thursdays.",
+        "resource_helpfulness": "Somewhat helpful. While I've got you, when is somebody getting back to me about the physio bill? Nobody's rung.",
+        "improvement_feedback": "Nothing really. Could you email me a copy of what I've said today?",
+        "liked_most": "The articles were clear enough.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful."
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": {
+          "reviewed_resources": "yes",
+          "resource_helpfulness": "somewhat_helpful"
+        },
+        "not_declined": [
+          "resource_helpfulness",
+          "improvement_feedback"
+        ],
+        "reported_intents": [
+          "unsupported",
+          "side_request"
+        ],
+        "not_reported_intents": [
+          "off_topic",
+          "clarification"
+        ]
+      },
+      "why": [
+        "Three unrelated things raised in one survey, and the call owes each of them",
+        "something different. Every one of them used to be filed identically, as a side",
+        "request, and reported at the end as an outstanding member request.",
+        "",
+        "  - her daughter arriving asks nothing of us. It is heard and it is not work.",
+        "  - the physio bill is the one with consequences: somebody is waiting. Note that",
+        "    none of the ten member-services keywords appears in it — the classification",
+        "    is the model's, and this is the turn that used to fall through the list.",
+        "  - the copy of her answers is the genuinely actionable one, and the only thing",
+        "    here that nobody on this call can do.",
+        "",
+        "What is asserted is the report a person actually works through: the bill and the",
+        "request in it, the chit-chat not. A call that reports all three is a call whose",
+        "list nobody reads, which is how the bill gets missed.",
+        "",
+        "The answers must survive all of it. A member who talks while she answers has",
+        "still answered."
+      ]
+    },
+    {
+      "id": "policyholder_is_not_available",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "rcm-live-015",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "She's my mother — she's having a nap just now. Can I take a message?",
+        "participation_consent": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "policyholder_unavailable",
+        "not_asked": [
+          "participation_consent",
+          "reviewed_resources"
+        ]
+      },
+      "why": [
+        "The other half of wrong_number_ends_the_call, and the distinction between them",
+        "is a work item worth retrying tomorrow versus a number that must never be",
+        "dialled for this member again.",
+        "",
+        "Nobody said the word 'no'. Telling us the policyholder cannot come to the phone",
+        "IS the answer to whether we reached her, and the survey must not be put to the",
+        "daughter who answered — she never consented to anything and the answers would",
+        "not be her mother's."
       ]
     }
   ]

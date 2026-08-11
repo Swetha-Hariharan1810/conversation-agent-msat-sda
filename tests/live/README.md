@@ -4,11 +4,21 @@ Everything here sends real requests to the configured provider. They are the onl
 tests that can tell you whether the prompts actually work — a stub can prove the
 plumbing is right and nothing else.
 
+**Two files, and the split is deliberate.** Whole calls are the suite; guard
+detection is asked of the model on its own because a safeguarding turn has to be
+decided before anything else in the call has a say, and a test that only ever
+saw it inside a finished call could not tell you that.
+
+Everything else the model does — reading a turn, recording an answer or refusing
+to, labelling what the member raised — is checked through a whole call, against
+the outcome rather than against the label. A turn read correctly that still
+produces the wrong outcome is not a passing test.
+
 ```bash
 # opt in, with credentials in the environment exactly as a call would have them
 MSAT_LIVE_TESTS=1 uv run pytest tests/live -v
 
-# whole calls only — nine complete surveys, the expensive and most useful file
+# whole calls only — fifteen complete calls, the expensive and most useful file
 MSAT_LIVE_TESTS=1 uv run pytest tests/live/test_full_calls.py -v
 
 # just the guards, four times each, to see whether the answers are stable
@@ -92,11 +102,12 @@ conversations written to results/live/2026-08-10T09-26-23Z (see index.md)
 latency: guard p50 0.39s p95 0.61s (17%) · extract p50 0.68s p95 1.04s (29%) · generate p50 1.21s p95 2.10s (48%)
 ```
 
-For a baseline worth quoting, run the two suites that make whole turns rather
-than single calls:
+For a baseline worth quoting, run the calls — they are the only tests that make
+whole turns, so they are the only ones whose numbers are a member's waiting time
+rather than one call's:
 
 ```bash
-MSAT_LIVE_TESTS=1 uv run pytest tests/live/test_full_turns.py tests/live/test_full_calls.py -v
+MSAT_LIVE_TESTS=1 uv run pytest tests/live/test_full_calls.py -v
 ```
 
 Nothing is measured unless a run is collecting — `msat_flow/llm/timing.py` records
@@ -107,13 +118,10 @@ for how to read the tables.
 
 | | |
 |---|---|
+| `test_full_calls.py` | **Whole calls**, greeting to closing line — every question, the real planner, the disposition that came out, and the report a person is left with |
 | `test_guard_detection.py` | Is this turn safety, a request for a person, voicemail, do-not-call or a pause? Asked twice — of the model alone, and of the whole guard |
-| `test_turn_reading.py` | Does the extractor record what the member said, and nothing they did not? |
-| `test_full_turns.py` | Do the two model calls compose — guard first, extractor only if it let the turn through? |
-| `test_full_calls.py` | **Whole calls**, greeting to closing line — every question, the real planner, the disposition that came out |
 | `scenarios/calls.json` | The complete calls, and what each must end as |
 | `scenarios/guards.json` | The turns, and what each should be decided as |
-| `scenarios/turns.json` | The turns, and what should be recorded from each |
 
 The fallback is tested in `tests/test_guard_fallback.py`, deliberately *outside*
 this directory: what it protects is the day the provider is gone, so it needs no
@@ -157,9 +165,10 @@ thing being tested, not a flaw in the test:
 - **Any other scenario that fails once** is worth re-running with
   `MSAT_LIVE_REPEAT=5` before changing anything. If it is right four times in
   five it is not right; the prompt needs the distinction spelled out.
-- **Do not loosen an assertion to make a run green.** The negative scenarios —
-  the ones expecting no guard and no recorded value — are the expensive half, and
-  they are the half it is tempting to soften.
+- **Do not loosen an assertion to make a run green.** The negative expectations —
+  no guard fired, no rating recorded from a member who never gave one, no aside
+  reported as an outstanding request — are the expensive half, and they are the
+  half it is tempting to soften.
 
 ## Whole calls
 
@@ -175,6 +184,12 @@ Several things can only be seen here:
   missing — for a rising one
 - a safeguarding disclosure at question 2 stops the survey, keeps what came
   before it, and asks nothing after
+- a rating the member was merely *nearest* to never reaches her file, and the
+  one she gives a turn later does
+- a correction four questions on re-opens one branch and drops the answer the
+  other branch had already collected
+- what the member raised alongside the survey reaches the report if somebody
+  has to act on it, and does not if nobody does
 - the disposition matches what happened rather than what was intended
 
 The member's replies are keyed by the slot the agent is waiting on, never by

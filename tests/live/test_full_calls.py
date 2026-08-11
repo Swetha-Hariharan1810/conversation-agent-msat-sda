@@ -1,15 +1,25 @@
 """Whole calls, greeting to closing line, against a real provider.
 
-Every other live test puts one turn to the model. These run a call: the agent
-speaks, a scripted member answers whatever it was actually asked, and the loop
-repeats until the call ends on its own. Roughly ten agent turns, up to three
-model calls each, and the real planner deciding what comes next.
+These run a call: the agent speaks, a scripted member answers whatever it was
+actually asked, and the loop repeats until the call ends on its own. Roughly ten
+agent turns, up to three model calls each, and the real planner deciding what
+comes next.
+
+This is the whole of the live suite bar guard detection, which is asked of the
+model on its own because a safeguarding turn must be decided before anything
+else in the call has a say. Everything else the model does — reading a turn,
+recording an answer or refusing to, labelling what the member raised — is tested
+here, through what came out at the end of a call rather than through what one
+call returned in the middle of one. A turn read correctly that still produces
+the wrong outcome is not a passing test, and the shape of this file is the
+statement that the outcome is the thing.
 
 Several things can only be seen here. That question 1a is asked and 1b is not.
 That question 5 appears for a high-risk member and is reported as *skipped* — not
 missing — for a rising one. That a safeguarding disclosure at question 2 stops
-the survey and keeps what came before it. That the disposition matches what
-happened rather than what was intended.
+the survey and keeps what came before it. That a rating the member was merely
+*nearest* to never reaches her file. That the disposition matches what happened
+rather than what was intended.
 
 The loop is deliberately the same one ``app_graph.py`` runs: rebuild the agent
 from state each turn, run it, merge the update back. A driver that took a
@@ -127,12 +137,14 @@ async def test_the_whole_call(client, spec, transcript, call):
     outcome = _outcome(state)
     expect = call["expect"]
 
+    reported = outcome.get("open_intents") or []
     context = (
         f"\n  disposition : {outcome.get('disposition')}"
         f"\n  answers     : {outcome.get('answers')}"
         f"\n  declined    : {outcome.get('declined_questions')}"
         f"\n  skipped     : {[s.get('slot') for s in outcome.get('skipped_questions') or []]}"
         f"\n  missing     : {outcome.get('missing_questions')}"
+        f"\n  reported    : {[(i.get('kind'), i.get('raw_text')) for i in reported]}"
         f"\n  asked       : {member.asked}"
         f"\n\n  why this call exists:\n{describe(call)}"
     )
@@ -173,6 +185,25 @@ async def test_the_whole_call(client, spec, transcript, call):
             f"{call['id']}: {slot} should be reported as skipped, with the condition that ruled it "
             f"out — a question this member was never meant to get must not read as one we ran out "
             f"of time for{context}"
+        )
+
+    # What the call hands to a person to work through. The kind is the model's
+    # judgement about something the member raised, so this is where that
+    # judgement is checked against a real provider now — and it is checked
+    # through the report rather than through the label, because the report is
+    # what somebody acts on. A list that also holds the chit-chat is a list
+    # nobody reads, which is how the one entry that mattered gets missed.
+    kinds = [intent.get("kind") for intent in reported]
+    for kind in expect.get("reported_intents") or []:
+        assert kind in kinds, (
+            f"{call['id']}: nothing was reported as {kind!r}. Something the member raised and "
+            f"nobody on this call could deal with has to reach the outcome{context}"
+        )
+
+    for kind in expect.get("not_reported_intents") or []:
+        assert kind not in kinds, (
+            f"{call['id']}: {kind!r} was reported as something still needing a person. It was "
+            f"dealt with on the call, or it asked for nothing at all{context}"
         )
 
     assert NEVER not in str(outcome.get("answers") or {}), (
