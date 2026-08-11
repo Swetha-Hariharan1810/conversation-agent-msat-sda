@@ -21,6 +21,8 @@
     "  expect_identity_detail  \"wrong_number\" or \"unavailable\"",
     "  expect_event         the EventType the turn must be labelled with",
     "  expect_nothing       true when NOTHING may be recorded from this turn at all",
+    "  expect_intent_kinds  secondary-intent kinds that MUST be among those raised",
+    "  expect_intent_kinds_absent  kinds that must NOT be raised from this turn",
     "",
     "Every field is optional but 'member'. Assert only what the scenario is about —",
     "an assertion the prompt never promised is a failing test that reports nothing."
@@ -177,6 +179,79 @@
         "would_recommend": "yes"
       },
       "why": "Answered and asked something back. The answer must still land, and the question should surface as a secondary intent."
+    },
+    {
+      "id": "member_services_in_the_model_s_own_words",
+      "awaiting": "overall_experience",
+      "last_agent": "How would you rate your experience with the program overall? Extremely helpful; somewhat helpful; not very helpful; definitely not helpful.",
+      "member": "Extremely helpful. While I've got you — when is somebody getting back to me about the physio bill? Nobody's rung.",
+      "expect": {
+        "overall_experience": "extremely_helpful"
+      },
+      "expect_intent_kinds": [
+        "member_services"
+      ],
+      "why": [
+        "The turn the classification change exists for. This used to be decided by",
+        "matching ten words against the model's OWN paraphrase of the remark, so",
+        "whether this member's unanswered bill was reported at all came down to",
+        "whether the model happened to write the word 'billing' — 'asked when someone",
+        "will get back to her about the physio bill' matched nothing.",
+        "",
+        "It is the one kind with consequences: somebody is waiting."
+      ]
+    },
+    {
+      "id": "an_aside_is_not_a_request",
+      "awaiting": "would_recommend",
+      "last_agent": "Would you recommend the program to people you know?",
+      "member": "Oh yes, definitely. Sorry, my daughter's just arrived — she visits on Thursdays.",
+      "expect": {
+        "would_recommend": "yes"
+      },
+      "expect_intent_kinds_absent": [
+        "member_services",
+        "request"
+      ],
+      "why": [
+        "Chit-chat, and it must not be filed as something a person has to act on.",
+        "Every non-empty remark used to become a side request, so an eldercare",
+        "satisfaction call ended with a list of 'unresolved member requests' made",
+        "mostly of asides — which is how the one that was real got missed.",
+        "",
+        "The answer must still land: an aside alongside an answer is not a reason to",
+        "lose the answer."
+      ]
+    },
+    {
+      "id": "a_question_about_the_question_is_about_the_survey",
+      "awaiting": "reviewed_resources",
+      "last_agent": "Were you able to review any of the program resources such as action plans, articles, videos, or websites?",
+      "member": "What counts as a resource, exactly?",
+      "expect_intent_kinds": [
+        "about_the_survey"
+      ],
+      "expect_nothing": true,
+      "why": [
+        "The caller answers this by reading the question out again, so it is dealt",
+        "with on the very next turn. Labelled anything else it stays on the ledger",
+        "for the rest of the call and is reported as a member request nobody",
+        "actioned — about a question that was answered thirty seconds later."
+      ]
+    },
+    {
+      "id": "a_request_of_us_is_a_request",
+      "awaiting": "improvement_feedback",
+      "last_agent": "What changes or additions would you like to see that would improve the program?",
+      "member": "Nothing really. Could you email me a copy of what I've said today?",
+      "expect_intent_kinds": [
+        "request"
+      ],
+      "why": [
+        "The genuinely actionable one: something this call cannot do and the program",
+        "team can. It is what the reported list is FOR, which only means anything",
+        "once the asides and the clarifying questions are no longer in it."
+      ]
     },
     {
       "id": "asks_us_to_repeat_the_question",

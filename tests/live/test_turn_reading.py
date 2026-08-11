@@ -59,6 +59,8 @@ async def test_the_turn_is_read_as_written(client, spec, transcript, row):
                     "expect_identity_detail",
                     "expect_event",
                     "expect_nothing",
+                    "expect_intent_kinds",
+                    "expect_intent_kinds_absent",
                 )
                 if key in row
             },
@@ -71,16 +73,22 @@ async def test_the_turn_is_read_as_written(client, spec, transcript, row):
                 "corrections": decision.corrections,
                 "declines": decision.declines_question,
                 "identity_detail": decision.identity_detail.value,
-                "secondary_intents": decision.secondary_intents,
+                "secondary_intents": [
+                    {"text": raised.text, "kind": raised.kind.value}
+                    for raised in decision.secondary_intents
+                ],
             },
         )
         recorded = {slot: _settled(slot, raw) for slot, raw in decision.values.items() if raw}
+        raised = [f"{item.kind.value or 'unlabelled'}: {item.text}" for item in decision.secondary_intents]
+        kinds = [item.kind.value for item in decision.secondary_intents]
         seen = dict(
             event=decision.event_type,
             recorded=recorded or "nothing",
             corrections=decision.corrections or "none",
             declines=decision.declines_question,
             identity=decision.identity_detail.value or "none",
+            raised=raised or "nothing",
             attempt=attempt,
         )
 
@@ -128,6 +136,21 @@ async def test_the_turn_is_read_as_written(client, spec, transcript, row):
             # validator then threw away still read the turn wrongly.
             assert not decision.values, failure(
                 row, expected="nothing recorded at all", got=decision.values, **seen
+            )
+
+        # What kind each remark is decides what the call does with it: whether a
+        # line is said about it, and whether it is reported at the end as
+        # something a person still has to deal with. Asserted as "must be among
+        # them" rather than as the whole list, because a member can raise two
+        # things at once and this is not the test for how many.
+        for expected in row.get("expect_intent_kinds") or []:
+            assert expected in kinds, failure(
+                row, expected=f"a {expected} intent", got=raised or "nothing", **seen
+            )
+
+        for unwanted in row.get("expect_intent_kinds_absent") or []:
+            assert unwanted not in kinds, failure(
+                row, expected=f"no {unwanted} intent", got=raised or "nothing", **seen
             )
 
         if "expect_identity_detail" in row:

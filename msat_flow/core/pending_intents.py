@@ -16,7 +16,8 @@ class IntentKind(StrEnum):
     CORRECTION = "correction"  # member revised an answer they already gave
     SIDE_REQUEST = "side_request"  # member asked us for something
     UNSUPPORTED = "unsupported"  # about their policy or the program, not this call's job
-    OFF_TOPIC = "off_topic"
+    CLARIFICATION = "clarification"  # a question about the question we just put
+    OFF_TOPIC = "off_topic"  # a remark that asks nothing of us
 
 
 class IntentStatus(StrEnum):
@@ -26,7 +27,15 @@ class IntentStatus(StrEnum):
 
 
 # Kinds that must be spoken aloud once but must not rewind the survey.
-ACK_ONLY_KINDS = frozenset({IntentKind.UNSUPPORTED.value, IntentKind.OFF_TOPIC.value})
+#
+# ``UNSUPPORTED`` and nothing else, because there is exactly one acknowledgement
+# to say — "I'll note that and pass it on to the program team" — and it is a
+# sentence about member services. Said back to somebody telling us their daughter
+# is visiting, it is worse than saying nothing: it answers a remark that asked
+# nothing with a promise nobody wanted. ``OFF_TOPIC`` and ``CLARIFICATION`` are
+# answered by the line the generator composes with the member's own words in
+# hand, not by this one.
+ACK_ONLY_KINDS = frozenset({IntentKind.UNSUPPORTED.value})
 
 
 @dataclass

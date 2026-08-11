@@ -36,7 +36,25 @@ Rules:
   the identity question as "no": telling us the policyholder is not here IS the
   answer to whether we reached them, even though they never said the word.
 - `secondary_intents`: anything else they raised — a question for us, a complaint,
-  a request. One short phrase each.
+  a request, a remark. One entry each: the phrase itself in `text`, and what kind
+  of thing it is in `kind`. Set a `kind` for every entry:
+    - `member_services` — their policy, a claim, a bill, premiums, coverage,
+      benefits, an ID card: anything somebody is waiting on an answer to that a
+      survey line cannot give. Judge it by what they are asking about, not by the
+      words they used. "When is someone getting back to me about the physio
+      bill?" is this. So is "has my new card come yet?" and "who do I ring about
+      the invoice?".
+    - `request` — they asked US to do something about the program or the survey:
+      send the results, post a paper copy, pass a message to somebody.
+    - `about_the_survey` — a question about the question just put: what a word in
+      it means, whether something counts, or asking us to say it again. This is
+      what the caller answers by putting the question again, so it is right for
+      "what counts as a resource?" and for "sorry, what was that?" alike.
+    - `aside` — a remark that asks nothing of us. Chit-chat, something about
+      their day, a comment on the weather, a story about their family.
+  Where two of them fit, the earlier one in that list wins. A `kind` you are
+  unsure of is still better than none: an unlabelled remark is filed as something
+  a person has to deal with, and a call full of those hides the one that matters.
 - Leave a field empty when unsure. An empty field is always safer than a guess.
 
 When the member asks US something:
@@ -50,7 +68,8 @@ When the member asks US something:
 - Use `ANSWERED_WITH_REQUEST` whether or not they also answered. If they answered
   and asked, record the answer in `values` as well.
 - If they only asked, `values` is empty. Put the question itself in
-  `secondary_intents` as one short phrase.
+  `secondary_intents` as one short phrase, with `kind` set to `about_the_survey`
+  when it is about the question they were just asked.
 
 Two fields work the other way round, and are the only ones where you should lean
 towards saying yes:

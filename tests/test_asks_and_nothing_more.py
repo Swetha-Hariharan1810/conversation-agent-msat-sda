@@ -31,7 +31,7 @@ import pytest
 
 from msat_flow.agents.survey_agent import MsatSurveyAgent
 from msat_flow.core.pending_intents import IntentKind, IntentStatus, PendingIntent
-from msat_flow.llm.schema import EventType, TurnDecision
+from msat_flow.llm.schema import EventType, SecondaryIntent, SecondaryIntentKind, TurnDecision
 from msat_flow.planner import Action, Plan
 from msat_flow.script.spec import load_spec
 
@@ -146,7 +146,11 @@ def test_a_turn_that_raised_something_alongside_the_answer(agent):
     ledger's ack-only kinds do not see it. What answers it today is the generator
     getting the member's own words — so this turn must keep its generated line.
     """
-    decision = _answered(secondary_intents=["can you send me a paper copy?"])
+    decision = _answered(
+        secondary_intents=[
+            SecondaryIntent(text="can you send me a paper copy?", kind=SecondaryIntentKind.REQUEST)
+        ]
+    )
     agent.capture_and_triage(decision)
 
     kinds = {intent["kind"] for intent in agent._pending_intents}
@@ -182,7 +186,7 @@ def test_an_intent_already_spoken_to_is_no_longer_owed_a_line(agent):
 
 
 def test_a_correction_on_the_ledger_does_not_by_itself_block_a_plain_ask(agent):
-    """``ACK_ONLY_KINDS`` is ``UNSUPPORTED`` and ``OFF_TOPIC``, and nothing else.
+    """``ACK_ONLY_KINDS`` is ``UNSUPPORTED``, and nothing else.
 
     An open correction is answered by re-asking the question it belongs to, which
     the planner does; it is not owed a spoken acknowledgement, so it must not be

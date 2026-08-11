@@ -24,7 +24,13 @@ import pytest
 
 from msat_flow.agents.survey_agent import MsatSurveyAgent
 from msat_flow.llm import timing
-from msat_flow.llm.schema import EventType, GuardAssessment, TurnDecision
+from msat_flow.llm.schema import (
+    EventType,
+    GuardAssessment,
+    SecondaryIntent,
+    SecondaryIntentKind,
+    TurnDecision,
+)
 from msat_flow.script.spec import load_spec
 from msat_flow.state import initial_state
 
@@ -64,7 +70,11 @@ def _asks_back(**overrides) -> TurnDecision:
     """A turn that asked us something and answered nothing."""
     decision = TurnDecision(
         event_type=EventType.ANSWERED_WITH_REQUEST,
-        secondary_intents=["asked us to repeat the question"],
+        secondary_intents=[
+            SecondaryIntent(
+                text="asked us to repeat the question", kind=SecondaryIntentKind.ABOUT_THE_SURVEY
+            )
+        ],
     )
     for name, value in overrides.items():
         setattr(decision, name, value)
