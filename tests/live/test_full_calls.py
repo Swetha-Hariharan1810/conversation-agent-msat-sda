@@ -155,6 +155,18 @@ async def test_the_whole_call(client, spec, transcript, call):
             f"got {(outcome.get('answers') or {}).get(slot)!r}{context}"
         )
 
+    # Checked before the skipped/answers detail: "declined" is what the business
+    # reads as "we asked and they would rather not say", and a member who was
+    # working out what was being asked, or who could not hear us, must never be
+    # reported that way. It is the difference between a survey gap and a slur on
+    # somebody who was trying to answer.
+    declined = set(outcome.get("declined_questions") or [])
+    for slot in expect.get("not_declined") or []:
+        assert slot not in declined, (
+            f"{call['id']}: {slot!r} was reported as declined. The member answered it — "
+            f"a question they had to ask us about first is not one they refused{context}"
+        )
+
     skipped = {entry.get("slot") for entry in outcome.get("skipped_questions") or []}
     for slot in expect.get("skipped") or []:
         assert slot in skipped, (
