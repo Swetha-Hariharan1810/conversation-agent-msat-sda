@@ -48,7 +48,11 @@ CONTRACT: dict[str, frozenset[str]] = {
     "speak_line.values": frozenset({"values"}),
     "speak_line.context": frozenset({"member"}),
     "speak_line.acknowledge": frozenset({"ack"}),
-    "speak_line.retry": frozenset({"slot", "reason", "attempt", "limit"}),
+    "speak_line.retry": frozenset({"slot", "reason"}),
+    # Separate from the retry wording because it is not always true. A question
+    # the member asked us to repeat is put again without spending an attempt, and
+    # a turn that has spent none has no "attempt 1 of 3" to report.
+    "speak_line.attempt": frozenset({"attempt", "limit"}),
     # The simulated member in scripts/live_call.py and scripts/live_eval.py.
     # Not part of the agent; it is the other side of a graded call.
     "simulated_member.system": frozenset({"name", "answers", "persona"}),

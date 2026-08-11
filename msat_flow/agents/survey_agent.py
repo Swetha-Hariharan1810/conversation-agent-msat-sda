@@ -457,19 +457,43 @@ class MsatSurveyAgent(BaseAgent):
         rejected: dict[str, str],
         declined: list[str],
     ) -> tuple[str, str] | None:
-        """The question we must put again, if any.
+        """The question we must put again, if any, and why.
 
         A member who answers our question with a question of their own has not
         failed to answer it, and neither has one who declined — the first gets
         answered and asked again, the second is settled. Only an unusable answer
         or a rejected one counts against the budget.
+
+        The reason travels with the slot into ``speak_line.retry.md``, so it has
+        to be true: it is what decides whether the next line apologises for
+        mishearing or reads the question out again.
         """
         if not awaiting or self.answered(awaiting) or awaiting in declined:
             return None
         if decision.declines_question:
+            # Settled, not retried — including when they declined and asked us
+            # something in the same breath. "I'd rather not, and who are you
+            # with?" is an answer about the survey; re-asking would talk over it.
             return None
         if awaiting in rejected:
+            # What they said was offered to the slot and the slot would not have
+            # it. That is a real failed attempt however the turn was labelled,
+            # and its reason is more specific than anything below.
             return awaiting, rejected[awaiting]
+        if decision.event_type is EventType.ANSWERED_WITH_REQUEST:
+            # They asked us something rather than answering — to say it again, or
+            # what a word in it meant. The question goes out again WITHOUT
+            # charging the attempt: a member who could not hear the question, or
+            # did not know what it was asking, has not failed to answer it, and
+            # three of those must not add up to a question reported as one they
+            # would rather not say.
+            #
+            # Ahead of the corrections check on purpose. A turn that revises an
+            # earlier answer AND asks us something still needs the next line to
+            # deal with what was asked, and this branch spends nothing either
+            # way. If the correction re-opened a different branch, `run` drops
+            # the retry anyway — it only applies one the planner still wants.
+            return awaiting, "they asked us something back rather than answering"
         if decision.corrections:
             # They revised an earlier answer instead of answering this one. That
             # is a contribution, not a failure to answer, and charging it to the

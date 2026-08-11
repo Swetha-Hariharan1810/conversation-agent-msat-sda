@@ -90,10 +90,15 @@ def build_messages(
             "speak_line.retry",
             slot=retry_slot.replace("_", " "),
             reason=retry_reason or "it was unclear",
-            attempt=attempt,
-            limit=attempt_limit,
         )
         if retry_slot
+        else "",
+        # Only once something has actually been spent. A question the member
+        # asked us to repeat is put again without charging an attempt, and
+        # "attempt 0 of 3" told the model to press somebody who had not yet had
+        # a chance to answer.
+        prompts.render("speak_line.attempt", attempt=attempt, limit=attempt_limit)
+        if retry_slot and attempt >= 1
         else "",
         prompts.render("speak_line.acknowledge", ack=ack) if ack else "",
     )

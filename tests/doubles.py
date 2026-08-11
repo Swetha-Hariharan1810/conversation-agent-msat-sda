@@ -51,7 +51,7 @@ class Chain:
 
     async def ainvoke(self, messages):
         role = timing.GUARD if self._schema is GuardAssessment else timing.EXTRACT
-        await self._chat.answer(role)
+        await self._chat.answer(role, messages)
         return self._chat.guard if role == timing.GUARD else self._chat.decision
 
 
@@ -74,19 +74,30 @@ class Chat:
         self.raises = frozenset(raises)
         # The roles this chat was asked for, in the order the requests were made.
         self.asked: list[str] = []
+        # Every prompt it was sent, keyed by role, so a test can read what the
+        # agent actually asked for rather than only what came back.
+        self.prompts: dict[str, list[list[dict]]] = {}
 
-    async def answer(self, role: str) -> None:
+    async def answer(self, role: str, messages=None) -> None:
         """Take this role's time, then fail if this role is scripted to."""
         self.asked.append(role)
+        self.prompts.setdefault(role, []).append(messages or [])
         await asyncio.sleep(self.delays.get(role, 0.0))
         if role in self.raises:
             raise RuntimeError(f"{role} call failed")
+
+    def sent(self, role: str) -> list[str]:
+        """Every prompt sent for ``role``, flattened to one string per call."""
+        return [
+            "\n".join(str(message.get("content", "")) for message in messages)
+            for messages in self.prompts.get(role, [])
+        ]
 
     def with_structured_output(self, schema, method: str = "") -> Chain:
         return Chain(self, schema)
 
     async def ainvoke(self, messages) -> Spoken:
-        await self.answer(timing.GENERATE)
+        await self.answer(timing.GENERATE, messages)
         return Spoken(self.spoken)
 
 
