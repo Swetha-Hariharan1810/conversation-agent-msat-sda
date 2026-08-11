@@ -199,7 +199,8 @@
         "will get back to her about the physio bill' matched nothing.",
         "",
         "It is the one kind with consequences: somebody is waiting."
-      ]
+      ],
+      "expect_event": "ANSWERED_WITH_REQUEST"
     },
     {
       "id": "an_aside_is_not_a_request",
@@ -221,23 +222,8 @@
         "",
         "The answer must still land: an aside alongside an answer is not a reason to",
         "lose the answer."
-      ]
-    },
-    {
-      "id": "a_question_about_the_question_is_about_the_survey",
-      "awaiting": "reviewed_resources",
-      "last_agent": "Were you able to review any of the program resources such as action plans, articles, videos, or websites?",
-      "member": "What counts as a resource, exactly?",
-      "expect_intent_kinds": [
-        "about_the_survey"
       ],
-      "expect_nothing": true,
-      "why": [
-        "The caller answers this by reading the question out again, so it is dealt",
-        "with on the very next turn. Labelled anything else it stays on the ledger",
-        "for the rest of the call and is reported as a member request nobody",
-        "actioned — about a question that was answered thirty seconds later."
-      ]
+      "expect_event": "ANSWERED"
     },
     {
       "id": "a_request_of_us_is_a_request",
@@ -251,7 +237,8 @@
         "The genuinely actionable one: something this call cannot do and the program",
         "team can. It is what the reported list is FOR, which only means anything",
         "once the asides and the clarifying questions are no longer in it."
-      ]
+      ],
+      "expect_event": "ANSWERED_WITH_REQUEST"
     },
     {
       "id": "asks_us_to_repeat_the_question",
@@ -266,6 +253,9 @@
         "has not answered it wrongly — they have not been asked it yet in terms they",
         "could answer. Labelled AMBIGUOUS it costs them a retry and, three of those in,",
         "gets reported to the business as a question they would rather not answer."
+      ],
+      "expect_intent_kinds": [
+        "about_the_survey"
       ]
     },
     {
@@ -279,6 +269,9 @@
         "They started to answer and stopped. There is a rating coming and it is not this",
         "turn's to guess: 'they were' is not one of the four options and must not be",
         "rounded to the nearest one."
+      ],
+      "expect_intent_kinds": [
+        "about_the_survey"
       ]
     },
     {
@@ -293,6 +286,9 @@
         "Not knowing what is being asked is not an unclear answer to it. The script's own",
         "wording lists what counts, so re-reading the question IS the reply — but only if",
         "the turn is not first recorded as a failed attempt."
+      ],
+      "expect_intent_kinds": [
+        "about_the_survey"
       ]
     },
     {
@@ -307,6 +303,9 @@
         "The harder half: a fair question the script has no answer to. It must still not",
         "be read as an answer, and it must not be guessed at — 'yes' here would record a",
         "review of resources the member has just told us they may never have opened."
+      ],
+      "expect_intent_kinds": [
+        "about_the_survey"
       ]
     }
   ]

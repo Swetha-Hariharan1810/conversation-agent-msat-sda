@@ -583,11 +583,14 @@ class MsatSurveyAgent(BaseAgent):
           line, and it covers ``UNSUPPORTED`` and nothing else — there is one
           acknowledgement to say and it is a sentence about member services.
 
-        A ``SIDE_REQUEST`` is neither of those: it goes on the ledger, it is
-        never spoken to, and it leaves the ack empty. Today that turn still
-        reaches the generator with the member's own words as
-        ``last_member_message``, and the agent can answer them. Collapse the two
-        checks into one and that turn gets a fixed line instead, and the request
+        Three kinds are neither: ``SIDE_REQUEST``, ``CLARIFICATION`` and
+        ``OFF_TOPIC`` all go on the ledger and all leave the ack empty, and an
+        ``OFF_TOPIC`` is filed NOTED so it is never open either. Today those
+        turns still reach the generator with the member's own words as
+        ``last_member_message``, and the agent can answer them — which is why a
+        call full of asides and questions about the question sounds right even
+        when nothing is said about them explicitly. Collapse the two checks into
+        one and those turns get a fixed line instead, and what the member raised
         is dropped in silence.
         """
         if decision is None:
