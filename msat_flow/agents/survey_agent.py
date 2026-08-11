@@ -26,7 +26,7 @@ import asyncio
 from ..core import guards
 from ..core.agent import BaseAgent
 from ..core.guards import GuardOutcome
-from ..core.pending_intents import ACK_ONLY_KINDS, open_intents
+from ..core.pending_intents import ACK_ONLY_KINDS, open_intents, unfinished
 from ..llm.extractor import extract
 from ..llm.response_generator import generate
 from ..llm.schema import EventType, IdentityDetail, TurnDecision
@@ -760,8 +760,10 @@ class MsatSurveyAgent(BaseAgent):
                     payload_lookup=payload_lookup,
                 ),
                 "visited_nodes": list(self._visited),
-                "open_intents": [
-                    intent for intent in self._pending_intents if intent.get("status") == "open"
-                ],
+                # What the call did not finish, which is not the same as what it
+                # did not say. The line about member services is a promise to
+                # pass something on; the passing on happens here, in a list a
+                # person works through, so an acknowledged request stays in it.
+                "open_intents": unfinished(self._pending_intents),
             }
         }

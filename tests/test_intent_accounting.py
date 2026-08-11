@@ -81,6 +81,24 @@ async def _turn(spec, decision: TurnDecision, state: dict | None = None):
     return agent, result, chat
 
 
+async def _resumed(spec, state: dict, decision: TurnDecision, guard: GuardAssessment | None = None):
+    """A later turn of the same call, rebuilt from state the way the graph does.
+
+    ``app_graph`` builds the agent with ``from_state`` every turn, so the ledger
+    arrives as the plain dicts it was persisted as. Anything asserted here is
+    therefore asserted about state that went through a checkpoint.
+    """
+    chat = Chat(
+        delays={role: 0.0 for role in timing.ROLES},
+        guard=guard if guard is not None else GuardAssessment(),
+        decision=decision,
+    )
+    agent = MsatSurveyAgent.from_state(state)
+    agent.client = provider(chat)
+    agent.spec = spec
+    return agent, await agent.run(state), chat
+
+
 def _ledger(agent: MsatSurveyAgent) -> list[tuple[str, str]]:
     return [(intent["kind"], intent["status"]) for intent in agent._pending_intents]
 
@@ -228,9 +246,10 @@ async def test_a_whole_turn_of_everything_at_once(spec):
     """All four in one breath, which is the turn the old classifier flattened
     into four identical side requests.
 
-    Three of them are dealt with on the turn itself — the bill is spoken to, the
-    question is put again, the aside is simply heard — and the one thing nobody
-    on this call can do is what is left.
+    Every one is dealt with differently on the turn itself: the bill is spoken
+    to, the question is put again, the aside is simply heard, and the one thing
+    nobody on this call can do is left open. What of that reaches the report is
+    the section below.
     """
     agent, result, _ = await _turn(
         spec,
@@ -252,3 +271,96 @@ async def test_a_whole_turn_of_everything_at_once(spec):
         (IntentKind.OFF_TOPIC.value, IntentStatus.NOTED.value),
     ]
     assert [intent["kind"] for intent in _still_open(result)] == [IntentKind.SIDE_REQUEST.value]
+
+
+# ── and what the call reports at the end ─────────────────────────────────
+
+
+def _everything_at_once() -> TurnDecision:
+    return TurnDecision(
+        event_type=EventType.ANSWERED_WITH_REQUEST,
+        secondary_intents=[
+            _raised("when is somebody ringing back about the bill", SecondaryIntentKind.MEMBER_SERVICES),
+            _raised("could you email me a copy", SecondaryIntentKind.REQUEST),
+            _raised("what counts as a resource", SecondaryIntentKind.ABOUT_THE_SURVEY),
+            _raised("her daughter has just arrived", SecondaryIntentKind.ASIDE),
+        ],
+    )
+
+
+async def _closed_after(spec, decision: TurnDecision) -> dict:
+    """Raise something on one turn, end the call on the next, return the outcome.
+
+    The call is ended by the member asking not to be called again, which is a
+    guard: it settles the turn without reading it, so the second turn adds
+    nothing to the ledger and what comes out is what the first turn left.
+    """
+    _, first, _ = await _turn(spec, decision)
+    resumed = {
+        **_state(),
+        **first,
+        "messages": [
+            *_state()["messages"],
+            *(first.get("messages") or []),
+            {"role": "user", "content": "Take me off your list, would you."},
+        ],
+    }
+    _, ended, _ = await _resumed(
+        spec, resumed, TurnDecision(), guard=GuardAssessment(asks_not_to_be_called=True)
+    )
+    return ended["output_data"]["call_outcome"]
+
+
+async def test_the_report_holds_what_still_needs_somebody(spec):
+    """The whole point of the change, read where a person reads it.
+
+    Before: four entries, all "side_request", three of them noise — the request,
+    a question the caller answered thirty seconds later, and a member's daughter
+    arriving. The one that mattered was in there somewhere.
+
+    After: the bill and the request. Nothing else.
+    """
+    outcome = await _closed_after(spec, _everything_at_once())
+
+    assert [(intent["kind"], intent["raw_text"]) for intent in outcome["open_intents"]] == [
+        (IntentKind.UNSUPPORTED.value, "when is somebody ringing back about the bill"),
+        (IntentKind.SIDE_REQUEST.value, "could you email me a copy"),
+    ]
+
+
+async def test_the_promise_to_pass_it_on_is_not_the_passing_on(spec):
+    """The acknowledged entry is the load-bearing one.
+
+    "I'll note that and pass it on to the program team" is a promise, and this
+    list is where it gets kept. Reporting only OPEN intents would have dropped
+    every member-services request at the moment the caller promised to pass it
+    on — emptying the report of precisely the category with consequences.
+    """
+    outcome = await _closed_after(
+        spec,
+        TurnDecision(
+            values={SLOT: "yes"},
+            secondary_intents=[
+                _raised("has her new card come through yet", SecondaryIntentKind.MEMBER_SERVICES)
+            ],
+        ),
+    )
+
+    assert [intent["status"] for intent in outcome["open_intents"]] == [IntentStatus.ACKNOWLEDGED.value]
+
+
+async def test_a_call_of_nothing_but_chat_reports_nothing(spec):
+    """The eldercare call this is really about: warm, talkative, and asking us
+    for nothing. It used to end with a list of unresolved member requests."""
+    outcome = await _closed_after(
+        spec,
+        TurnDecision(
+            values={SLOT: "yes"},
+            secondary_intents=[
+                _raised("her daughter visits on Thursdays", SecondaryIntentKind.ASIDE),
+                _raised("it has been raining all week", SecondaryIntentKind.ASIDE),
+            ],
+        ),
+    )
+
+    assert outcome["open_intents"] == []

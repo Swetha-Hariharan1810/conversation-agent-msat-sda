@@ -69,6 +69,26 @@ def add_intent(intents: list[dict], intent: PendingIntent) -> list[dict]:
     return [*intents, incoming]
 
 
+def unfinished(intents: list[dict]) -> list[dict]:
+    """Everything still needing somebody, in the order it was raised.
+
+    OPEN and ACKNOWLEDGED both count, and the second is the one worth spelling
+    out: the acknowledgement is a promise — "I'll note that and pass it on to the
+    program team" — and saying it does not do it. A member-services request that
+    dropped out of the report the moment the caller said that sentence would be a
+    call that promised a person would look at the claim and then told nobody.
+
+    RESOLVED and NOTED are what the call really finished: the question that was
+    read out again, the answer that was corrected, the remark that asked for
+    nothing.
+    """
+    return [
+        intent
+        for intent in intents or []
+        if intent.get("status") in (IntentStatus.OPEN.value, IntentStatus.ACKNOWLEDGED.value)
+    ]
+
+
 def open_intents(intents: list[dict], *, kinds: frozenset[str] | None = None) -> list[dict]:
     return [
         intent
