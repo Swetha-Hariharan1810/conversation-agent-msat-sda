@@ -580,7 +580,8 @@ class MsatSurveyAgent(BaseAgent):
 
         * ``secondary_intents`` is what the member raised in this turn.
         * ``open_intents(..., kinds=ACK_ONLY_KINDS)`` is what is still owed a
-          line, and it covers ``UNSUPPORTED`` and ``OFF_TOPIC`` only.
+          line, and it covers ``UNSUPPORTED`` and nothing else — there is one
+          acknowledgement to say and it is a sentence about member services.
 
         A ``SIDE_REQUEST`` is neither of those: it goes on the ledger, it is
         never spoken to, and it leaves the ack empty. Today that turn still
