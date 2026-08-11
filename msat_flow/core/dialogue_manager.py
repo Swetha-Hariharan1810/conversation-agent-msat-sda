@@ -95,6 +95,25 @@ def intent_text(intent) -> str:
     return str(getattr(intent, "text", intent) or "").strip()
 
 
+def _captured_as(kind: IntentKind) -> IntentStatus:
+    """What a newly heard remark of this kind starts life as.
+
+    Everything the member raises is written down; what differs is whether it is
+    written down as *work*. An aside is owed nothing by anybody — there is no
+    line to say about it that would not be worse than saying nothing, and no
+    program-team entry that would not be noise — so it is NOTED where it stands
+    rather than left open for the rest of the call and then reported as a member
+    request nobody actioned.
+
+    Everything else starts OPEN and has to be closed by something the call
+    actually does: the acknowledgement for member services, the question going
+    out again for a clarification, the corrected answer being recorded for a
+    correction. A side request is the one that has no closing event here, and
+    that is the point of it — it leaves the call still open, for a person.
+    """
+    return IntentStatus.NOTED if kind is IntentKind.OFF_TOPIC else IntentStatus.OPEN
+
+
 class DialogueManagerMixin:
     """Adds multi-request capture and acknowledgement to the base agent."""
 
@@ -117,7 +136,11 @@ class DialogueManagerMixin:
             text = intent_text(raised)
             if not text:
                 continue
-            intents = add_intent(intents, PendingIntent(kind=classify(raised).value, raw_text=text))
+            kind = classify(raised)
+            intents = add_intent(
+                intents,
+                PendingIntent(kind=kind.value, raw_text=text, status=_captured_as(kind).value),
+            )
 
         self._pending_intents = intents
 
@@ -130,6 +153,26 @@ class DialogueManagerMixin:
             self._pending_intents, kinds=ACK_ONLY_KINDS, status=IntentStatus.ACKNOWLEDGED
         )
         return self.spec.policy.line("side_request_ack")
+
+    def resolve_clarifications(self) -> None:
+        """Close the questions about the question, once the question goes out again.
+
+        "Sorry, what was that?" and "what counts as a resource?" are answered by
+        the caller putting the question again — which is what this turn is doing
+        when it calls this. Before, they sat OPEN for the rest of the call and
+        were reported at the end as member requests nobody had dealt with, about
+        a question that was re-read to them thirty seconds later.
+
+        Only the turn that re-puts the question closes them. A clarifying
+        question asked alongside an answer, where the call moves on to the next
+        question instead, is left open on purpose: nobody read anything back to
+        that member, and a report that says so is the useful one.
+        """
+        self._pending_intents = mark(
+            self._pending_intents,
+            kinds=frozenset({IntentKind.CLARIFICATION.value}),
+            status=IntentStatus.RESOLVED,
+        )
 
     def resolve_intents(self, *, target: str) -> None:
         """Mark corrections for ``target`` resolved once the new answer is recorded."""

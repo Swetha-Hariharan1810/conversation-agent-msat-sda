@@ -631,6 +631,14 @@ class MsatSurveyAgent(BaseAgent):
             attempt_limit=self._gate_limit(retry_slot) if retry_slot else self.spec.policy.max_asks_per_slot,
         )
 
+        # The line just composed puts the question again, which is the answer to
+        # a member who asked what it meant or asked to hear it once more. Said
+        # after the line rather than before it because that is when it is true —
+        # and true even when the provider failed, since the fallback reads the
+        # script's own wording, options and all.
+        if retry_slot:
+            self.resolve_clarifications()
+
         extra: dict = {"phase": _ACTION_PHASE.get(plan.action, "survey")}
         asked = retry_slot or (plan.slot if plan.action in QUESTION_ACTIONS else "")
         if asked:

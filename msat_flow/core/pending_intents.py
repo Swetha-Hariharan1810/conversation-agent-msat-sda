@@ -24,6 +24,12 @@ class IntentStatus(StrEnum):
     OPEN = "open"
     ACKNOWLEDGED = "acknowledged"
     RESOLVED = "resolved"
+    # Heard, kept, and owed nothing. An aside is not a request, and filing it as
+    # one is how a report of things a person must action fills up with remarks
+    # about the weather. It is still written down — on this call the unprompted
+    # remark may be the most useful sentence of the survey — it is just not
+    # written down as work.
+    NOTED = "noted"
 
 
 # Kinds that must be spoken aloud once but must not rewind the survey.
