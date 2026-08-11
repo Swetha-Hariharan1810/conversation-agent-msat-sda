@@ -75,8 +75,9 @@ deliberately, and `MSAT_RESULTS_DIR` writes them elsewhere.
 
 ## Every run also times each call
 
-A turn makes up to three provider calls — the guard call, the extraction call and
-the line the agent speaks — and each is timed on its own under the role it played.
+A turn makes up to three provider calls — the guard call and the extraction call,
+which go out together, and then the line the agent speaks — and each is timed on
+its own under the role it played.
 That is what turns "this turn took 2.4 seconds" into something you can act on:
 which of the three the member was waiting on decides whether the answer is a
 smaller model, a shorter prompt, or one fewer call.

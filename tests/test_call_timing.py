@@ -23,7 +23,6 @@ that a label follows the call that produced it. So the whole file runs on every
 
 from __future__ import annotations
 
-import asyncio
 import json
 
 import pytest
@@ -31,9 +30,10 @@ import pytest
 from msat_flow.agents.survey_agent import MsatSurveyAgent
 from msat_flow.llm import timing
 from msat_flow.llm.client import LLMClient
-from msat_flow.llm.schema import GuardAssessment, TurnDecision
 from msat_flow.script.spec import load_spec
 from msat_flow.state import initial_state
+
+from .doubles import DELAYS, Chat, provider
 
 # Aliased on import: pytest collects anything named Test* in a test module, and
 # this one is a recorder, not a test case.
@@ -46,65 +46,8 @@ PAYLOAD = {
     "policyholder": {"first_name": "Margaret", "last_name": "Ellison", "risk_tier": "high"},
 }
 
-# Long enough to measure, short enough that the suite does not notice. They
-# differ from each other on purpose: that is what proves a timing's label follows
-# the call it timed rather than the order the calls happened to be made in.
-GUARD_DELAY = 0.01
-EXTRACT_DELAY = 0.02
-GENERATE_DELAY = 0.04
-
-
-class Spoken:
-    """What a chat model returns from ``ainvoke`` — content and nothing else."""
-
-    def __init__(self, content: str) -> None:
-        self.content = content
-
-
-class StructuredChain:
-    """What ``with_structured_output`` returns: a chain that answers in a schema."""
-
-    def __init__(self, chat, schema) -> None:
-        self._chat = chat
-        self._schema = schema
-
-    async def ainvoke(self, messages):
-        self._chat.calls += 1
-        if self._chat.fails:
-            await asyncio.sleep(GUARD_DELAY)
-            raise RuntimeError("provider unavailable")
-        if self._schema is GuardAssessment:
-            await asyncio.sleep(GUARD_DELAY)
-            return GuardAssessment()
-        await asyncio.sleep(EXTRACT_DELAY)
-        return TurnDecision(values={"reviewed_resources": "yes"})
-
-
-class SlowChat:
-    """A chat model that answers correctly, each kind of call taking its own time.
-
-    Stands exactly where ``langchain_openai``'s does, so the client's own code —
-    including the clock around it — is the code under test.
-    """
-
-    def __init__(self, fails: bool = False) -> None:
-        self.calls = 0
-        self.fails = fails
-
-    def with_structured_output(self, schema, method: str = ""):
-        return StructuredChain(self, schema)
-
-    async def ainvoke(self, messages):
-        self.calls += 1
-        await asyncio.sleep(GENERATE_DELAY)
-        return Spoken("And how helpful were they?")
-
-
-def _client(fails: bool = False) -> LLMClient:
-    """The real client, with the provider replaced and nothing else."""
-    client = LLMClient()
-    client._chat = SlowChat(fails=fails)
-    return client
+GUARD_DELAY = DELAYS[timing.GUARD]
+GENERATE_DELAY = DELAYS[timing.GENERATE]
 
 
 def _state(member: str, *, awaiting: str) -> dict:
@@ -130,13 +73,13 @@ def spec():
 
 
 async def test_a_turn_reports_each_of_its_three_calls_under_its_own_role(spec):
-    client = _client()
+    client = provider(Chat())
     with timing.collecting() as timeline:
         await _turn(spec, client)
 
-    assert [call.role for call in timeline.calls] == [timing.GUARD, timing.EXTRACT, timing.GENERATE], (
-        "a turn's calls must arrive labelled and in order — guard first, because a "
-        "member who is not safe is never made to wait on the survey reading their turn"
+    assert sorted(call.role for call in timeline.calls) == sorted(timing.ROLES), (
+        "every call a turn makes must arrive under its own role; a total that cannot "
+        "say which call it was cannot say what to fix"
     )
 
     took = {call.role: call.seconds for call in timeline.calls}
@@ -149,7 +92,7 @@ async def test_a_turn_reports_each_of_its_three_calls_under_its_own_role(spec):
 async def test_a_failed_call_is_still_timed(spec):
     """Dropping failures would flatter exactly the turns that went worst."""
     with timing.collecting() as timeline:
-        await _turn(spec, _client(fails=True))
+        await _turn(spec, provider(Chat(raises={timing.GUARD})))
 
     guard = next(call for call in timeline.calls if call.role == timing.GUARD)
     assert not guard.ok, "a call that raised was recorded as though it had worked"
@@ -158,20 +101,20 @@ async def test_a_failed_call_is_still_timed(spec):
 
 async def test_nothing_is_measured_when_nobody_is_collecting(spec):
     """The guarantee that lets this sit in the path of every call on a live one."""
-    client = _client()
+    client = provider(Chat())
     await _turn(spec, client)
 
     assert timing.active() is None, "a collector outlived the block that installed it"
-    assert client._chat.calls == 3, "the turn made no calls at all; this test would prove nothing"
+    assert len(client._chat.asked) == 3, "the turn made no calls at all; this test would prove nothing"
 
 
 async def test_collecting_stops_at_the_end_of_its_block(spec):
     with timing.collecting() as timeline:
-        await _turn(spec, _client())
+        await _turn(spec, provider(Chat()))
     before = len(timeline)
 
     with timing.collecting():
-        await _turn(spec, _client())
+        await _turn(spec, provider(Chat()))
 
     assert len(timeline) == before, "a later turn's calls landed on a closed timeline"
 
@@ -190,18 +133,22 @@ async def test_the_transcript_attributes_each_turns_calls_to_that_turn(spec):
     with timing.collecting() as timeline:
         handle = Transcript(conversation, timeline)
         for _ in range(2):
-            await _turn(spec, _client())
+            await _turn(spec, provider(Chat()))
             handle.exchange(scenario="two_turns", member="yes, a few of the articles")
 
     assert [len(exchange.calls) for exchange in conversation.exchanges] == [3, 3], (
         "each turn must carry its own three calls, not the running total"
     )
+    # Sorted, not in order: two of the three calls run concurrently now, so which
+    # of them is recorded first is a race and asserting on it would be flaky.
     assert all(
-        [call["role"] for call in exchange.calls] == list(timing.ROLES)
+        sorted(call["role"] for call in exchange.calls) == sorted(timing.ROLES)
         for exchange in conversation.exchanges
     )
     first = conversation.exchanges[0]
-    assert 0 < first.calls_s < first.took_s, "the provider time for a turn cannot exceed the turn"
+    # Overlap counted once, so what was waited for is strictly below what the
+    # provider spent: the guard call runs inside the reading's wait.
+    assert 0 < first.waiting_s < first.calls_s, "the concurrent calls were counted as sequential"
 
 
 async def test_the_run_ends_with_a_per_role_baseline(spec, tmp_path, monkeypatch):
@@ -213,7 +160,7 @@ async def test_the_run_ends_with_a_per_role_baseline(spec, tmp_path, monkeypatch
     node = "tests/live/test_x.py::test_a_call"
     with timing.collecting() as timeline:
         handle = Transcript(recorder.conversation(node), timeline)
-        await _turn(spec, _client())
+        await _turn(spec, provider(Chat()))
         handle.exchange(scenario="a_call", member="yes, a few of the articles")
 
     written = recorder.complete(node, "passed")

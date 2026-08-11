@@ -21,8 +21,12 @@ The survey-specific judgement lives in two places, and both are deliberate:
 
 from __future__ import annotations
 
+import asyncio
+
 from ..core import guards
 from ..core.agent import BaseAgent
+from ..core.guards import GuardOutcome
+from ..core.pending_intents import ACK_ONLY_KINDS, open_intents
 from ..llm.extractor import extract
 from ..llm.response_generator import generate
 from ..llm.schema import EventType, IdentityDetail, TurnDecision
@@ -157,15 +161,20 @@ class MsatSurveyAgent(BaseAgent):
         if not member_text:
             return await self._act(state, self._plan(state), updates={})
 
-        guard = await self.check_guards(state, member_text, last_agent)
+        # Both questions about this turn go out at once — see `_look`. What comes
+        # back is the guard's answer, what the turn was read as, and whatever
+        # reading it raised; the last two are ignored entirely on every path
+        # below that the guard settles.
+        guard, decision, unread = await self._look(state, member_text, last_agent)
         # Safety, a request for a person, an answering machine and a pause are
         # all turned into planned actions, so their wording comes from the spec
         # and the turn is recorded like any other. Crucially, the first two are
-        # decided BEFORE the turn is read as an answer, by a call of their own
-        # that is asked nothing but this: a member who is not safe must never
-        # have what they said weighed up against question 3 first, and must never
-        # be left waiting while the survey works out whether it counts as an
-        # answer.
+        # decided WITHOUT REFERENCE to the turn as an answer, by a call of their
+        # own that is asked nothing but this: a member who is not safe must never
+        # have what they said weighed up against question 3 first. The reading
+        # runs alongside rather than after, so it costs them no time either — but
+        # a turn the guard fires on is never read as survey content, and what the
+        # extractor made of it is discarded here unlooked at.
         if guard.kind in _PLANNED_GUARDS:
             return await self._act(state, self._plan(state, guard=guard.kind), updates=dict(guard.update))
         if guard.kind == _DO_NOT_CALL:
@@ -187,18 +196,21 @@ class MsatSurveyAgent(BaseAgent):
             return {**self.persisted(), **guard.update}
 
         awaiting = state.get("awaiting_slot", "")
-        try:
-            decision = await self._read(state, member_text, last_agent)
-        except Exception as exc:  # provider outage, rate limit past its retries
+        if unread is not None:  # provider outage, rate limit past its retries
             # Never mistake a failure to READ the turn for the member being
             # unclear: that would burn a retry against someone who answered
             # perfectly. End the call, keep every answer already recorded, and
             # say why.
+            #
+            # Only reached once the guard has let the turn through. A failure
+            # here on a turn that also asked for a person must not end the call
+            # over the reading — the member gets the person, and this is not
+            # looked at.
             return self._end(
                 state,
                 self.spec.policy.line("unable_to_continue"),
                 disposition=_ENDED_EARLY,
-                reason=f"could not process the turn: {exc}",
+                reason=f"could not process the turn: {unread}",
             )
         # A second look at the same turn, from the call that reads it. The guard
         # above has usually settled these already; what this catches is the turn
@@ -302,12 +314,61 @@ class MsatSurveyAgent(BaseAgent):
 
     # ── reading the turn ─────────────────────────────────────────────────
 
-    async def _read(self, state: SurveyState, member_text: str, last_agent: str) -> TurnDecision:
+    async def _look(
+        self, state: SurveyState, member_text: str, last_agent: str
+    ) -> tuple[GuardOutcome, TurnDecision | None, BaseException | None]:
+        """Ask both questions about this turn at once.
+
+        The guard call and the extraction call are put the same two things — what
+        the caller last said and what the member said back — and neither reads
+        the other's answer. Asked one after the other, the member waits for the
+        sum of them; asked together, they wait for the longer.
+
+        What that buys is time and nothing else. The guard still decides the turn
+        by itself, and every path it settles throws the reading away unlooked at,
+        exactly as it did when the reading had not been started yet.
+
+        Returns the guard's outcome, what the turn was read as, and whatever
+        reading it raised — never both of the last two.
+        """
+        # Settled before anything is launched, so the concurrent path only ever
+        # starts a call that would have been made anyway.
+        settled = self._read_without_a_call(state, member_text)
+        if settled is not None:
+            return await self.check_guards(state, member_text, last_agent), settled, None
+
+        guard, read = await asyncio.gather(
+            self.check_guards(state, member_text, last_agent),
+            self._read(state, member_text, last_agent),
+            return_exceptions=True,
+        )
+        if isinstance(guard, BaseException):
+            # Not a provider outage — `detect_guard` degrades to patterns for
+            # those and returns normally — so this is a fault, and it propagates
+            # exactly as it did when nothing else was in flight.
+            raise guard
+        if isinstance(read, BaseException):
+            return guard, None, read
+        return guard, read, None
+
+    def _read_without_a_call(self, state: SurveyState, member_text: str) -> TurnDecision | None:
+        """What the turn reads as when no provider call is needed, or ``None``.
+
+        Two turns never reach the extractor: a date and time, which is free text
+        the call captures directly, and every turn when no model is configured.
+        Both are decided here rather than inside the call that would have made
+        the request, so nothing is launched for a turn that would not have made
+        one.
+        """
         # Date/time is free text — skip the extractor and capture it directly.
         if state.get("awaiting_slot") == "reschedule_datetime":
             return TurnDecision()
         if self.client is None:
             return self._read_offline(state, member_text)
+        return None
+
+    async def _read(self, state: SurveyState, member_text: str, last_agent: str) -> TurnDecision:
+        """Read the turn with the model. The no-provider cases are settled above."""
         asked = tuple(filter(None, [state.get("awaiting_slot", "")]))
         return await extract(
             self.client,
@@ -461,6 +522,66 @@ class MsatSurveyAgent(BaseAgent):
             reason=f"{slot}_unresolved",
             updates=updates,
         )
+
+    def asks_and_nothing_more(
+        self,
+        plan: Plan,
+        decision: TurnDecision | None,
+        *,
+        ask_counts: dict[str, int],
+        retry_slot: str = "",
+    ) -> bool:
+        """Whether this turn's line is the question and nothing else.
+
+        True only for a turn that puts a question the member has never been asked
+        before, in answer to a turn that held nothing but an answer. There is
+        nothing to acknowledge, nothing to re-read, nothing to pick back up — the
+        line the generator would compose is the question, so a fixed line would
+        say the same thing.
+
+        Every other turn is asking the generator to *bridge*: to thank somebody
+        for a long answer, to read the options out again after an unclear one, to
+        come back to the question a pause interrupted, or to acknowledge
+        something raised that this call cannot act on. That is the whole reason
+        it is there.
+
+        Pure: no model, no I/O, and — the one worth stating outright — no
+        mutation. It reads the intent ledger through ``open_intents``, never
+        through ``side_request_ack``, which marks intents acknowledged as it
+        answers. A predicate that quietly acknowledged an intent would leave the
+        member's remark marked as spoken to on a turn where nothing was said
+        about it.
+
+        Two of the checks look like one and are not:
+
+        * ``secondary_intents`` is what the member raised in this turn.
+        * ``open_intents(..., kinds=ACK_ONLY_KINDS)`` is what is still owed a
+          line, and it covers ``UNSUPPORTED`` and ``OFF_TOPIC`` only.
+
+        A ``SIDE_REQUEST`` is neither of those: it goes on the ledger, it is
+        never spoken to, and it leaves the ack empty. Today that turn still
+        reaches the generator with the member's own words as
+        ``last_member_message``, and the agent can answer them. Collapse the two
+        checks into one and that turn gets a fixed line instead, and the request
+        is dropped in silence.
+        """
+        if decision is None:
+            return False
+        # ACKNOWLEDGE_HOLD is not in QUESTION_ACTIONS today. It is named anyway,
+        # because it is the one action that says something while leaving the
+        # question outstanding (see PRESERVE_AWAITING) — if it ever joins that
+        # set, "take your time" must not become a fixed line.
+        if plan.action not in QUESTION_ACTIONS or plan.action is Action.ACKNOWLEDGE_HOLD:
+            return False
+        # Asked before means there is a reason it is being asked again, and the
+        # member should hear that rather than the same sentence twice.
+        if ask_counts.get(plan.slot, 0) != 0 or retry_slot:
+            return False
+        if decision.event_type is not EventType.ANSWERED:
+            return False
+        if decision.corrections or decision.secondary_intents:
+            return False
+        return not open_intents(self._pending_intents, kinds=ACK_ONLY_KINDS)
 
     async def _act(
         self,

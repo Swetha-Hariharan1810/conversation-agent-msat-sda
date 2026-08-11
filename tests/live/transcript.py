@@ -52,6 +52,11 @@ MARK = {"passed": "✓", "failed": "✗", "skipped": "–"}
 
 _UNSAFE = re.compile(r"[^A-Za-z0-9._-]+")
 
+# Below this, two calls are consecutive rather than concurrent. Five milliseconds
+# is orders of magnitude under any provider call and well over the gap between
+# one finishing and the next being dispatched.
+_TOUCHING = 0.005
+
 
 @dataclass
 class Exchange:
@@ -66,13 +71,27 @@ class Exchange:
     took_s: float = 0.0  # this turn alone
     at_s: float = 0.0  # where it fell in the test, for lining two runs up
     # Every provider call this turn made, in order, each labelled with the role
-    # it played: ``[{"role": "guard", "seconds": 0.41, "ok": true}, ...]``. The
-    # sum of these against ``took_s`` is how much of the wait was the provider.
+    # it played and stamped with when it started:
+    # ``[{"role": "guard", "seconds": 0.41, "ok": true, "at": 0.0}, ...]``.
     calls: list[dict] = field(default_factory=list)
 
     @property
+    def timed_calls(self) -> list[timing.Call]:
+        return [_call(call) for call in self.calls]
+
+    @property
     def calls_s(self) -> float:
+        """What the provider spent on this turn, overlap counted twice."""
         return sum(call["seconds"] for call in self.calls)
+
+    @property
+    def waiting_s(self) -> float:
+        """What the member waited for it, overlap counted once.
+
+        Below ``calls_s`` whenever two calls ran together, and the gap between
+        the two is exactly what running them together bought.
+        """
+        return timing.busy_seconds(self.timed_calls)
 
 
 @dataclass
@@ -92,15 +111,47 @@ class Conversation:
     @property
     def calls(self) -> list[timing.Call]:
         """Every provider call this conversation made, in order."""
-        return [
-            timing.Call(call["role"], call["seconds"], call.get("ok", True))
-            for exchange in self.exchanges
-            for call in exchange.calls
-        ]
+        return [_call(call) for exchange in self.exchanges for call in exchange.calls]
+
+    @property
+    def waiting_s(self) -> float:
+        """Time this test spent waiting on the provider, overlap counted once.
+
+        Summed per turn rather than over the test as a whole: two calls only
+        overlap within the turn that made them, and a test's turns are minutes
+        apart.
+        """
+        return sum(exchange.waiting_s for exchange in self.exchanges)
+
+
+def _call(data: dict) -> timing.Call:
+    return timing.Call(data["role"], data["seconds"], data.get("ok", True), data.get("at", 0.0))
 
 
 def _compact(data: dict) -> str:
     return json.dumps(data, ensure_ascii=False, default=str)
+
+
+def _overlapping(exchange: Exchange) -> str:
+    """The roles whose calls overlapped in time, as ``guard + extract``.
+
+    Written into the transcript rather than inferred from the numbers, because
+    "these two ran together" is the claim the concurrency makes and it should be
+    checkable by reading rather than by arithmetic.
+    """
+    calls = exchange.timed_calls
+    together: set[str] = set()
+    for position, first in enumerate(calls):
+        for second in calls[position + 1 :]:
+            # Strictly more than touching. One call handing straight over to the
+            # next puts them a scheduler tick apart, and at three decimal places
+            # that is indistinguishable from a genuine overlap — which would have
+            # the transcript claim two calls ran together when one waited for the
+            # other.
+            if min(first.until, second.until) - max(first.at, second.at) > _TOUCHING:
+                together.update((first.role, second.role))
+    order = [role for role in timing.ROLES if role in together]
+    return " + ".join(order + sorted(together - set(order)))
 
 
 def _roles(calls: list[timing.Call]) -> str:
@@ -253,6 +304,7 @@ class Recorder:
             "timings": {role: stats.as_dict() for role, stats in timing.summarise(calls).items()},
             "turn_total_s": round(sum(turn.took_s for turn in conversation.exchanges), 3),
             "calls_total_s": round(sum(call.seconds for call in calls), 3),
+            "waiting_s": round(conversation.waiting_s, 3),
             "exchanges": [asdict(exchange) for exchange in conversation.exchanges],
         }
 
@@ -308,13 +360,28 @@ class Recorder:
                 f"| {role}{failed} | {stats.count} | {stats.p50_s:.2f}s | {stats.p95_s:.2f}s "
                 f"| {stats.slowest_s:.2f}s | {stats.total_s:.2f}s | {share} |"
             )
+        provider_total = sum(call.seconds for call in calls)
+        if round(conversation.waiting_s, 2) < round(provider_total, 2):
+            rows += [
+                "",
+                f"{provider_total:.2f}s of provider time, {conversation.waiting_s:.2f}s of it "
+                f"waited for — the rest ran inside another call's wait.",
+            ]
         return [*rows, ""]
 
     @staticmethod
     def _exchange_lines(number: int, exchange: Exchange) -> list[str]:
         took = f" · {exchange.took_s:.2f}s" if exchange.took_s else ""
         if exchange.calls:
-            took += f" ({exchange.calls_s:.2f}s in {len(exchange.calls)} model calls)"
+            # Waiting first: it is the part of the turn the member sat through.
+            # The provider total is beside it only when the two differ, which is
+            # exactly when calls ran together.
+            took += f" ({exchange.waiting_s:.2f}s waiting on {len(exchange.calls)} model calls"
+            took += (
+                f", {exchange.calls_s:.2f}s of provider time)"
+                if round(exchange.calls_s, 2) != round(exchange.waiting_s, 2)
+                else ")"
+            )
         lines = [f"**{number}. {exchange.scenario}**{took}", ""]
         if exchange.caller:
             lines += [f"> **{CALLER}** — {exchange.caller}", ">"]
@@ -330,7 +397,8 @@ class Recorder:
                 f"{call['role']} {call['seconds']:.2f}s" + ("" if call.get("ok", True) else " (failed)")
                 for call in exchange.calls
             )
-            lines += [f"- calls: {spent}"]
+            together = _overlapping(exchange)
+            lines += [f"- calls: {spent}" + (f" — {together} ran together" if together else "")]
         lines += [""]
         return lines
 
@@ -385,6 +453,9 @@ class Recorder:
             f"{turn_total:.1f}s the turns took end to end, so what the three leave over is "
             f"everything that is not the provider.",
             "",
+            "Calls made together are counted once in *waiting* and separately in *total*, "
+            "so a role's share can exceed what removing it would save.",
+            "",
             "| role | calls | p50 | p95 | slowest | total | share of turn time |",
             "|---|---:|---:|---:|---:|---:|---:|",
         ]
@@ -398,13 +469,22 @@ class Recorder:
             )
         provider_total = sum(call.seconds for call in calls)
         provider_share = f"{provider_total / turn_total:.0%}" if turn_total else "—"
+        waiting = sum(conversation.waiting_s for conversation in written)
+        waiting_share = f"{waiting / turn_total:.0%}" if turn_total else "—"
         lines += [
             f"| **all calls** | {len(calls)} | | | | {provider_total:.2f}s | {provider_share} |",
+            f"| **waiting on them** | | | | | {waiting:.2f}s | {waiting_share} |",
             "",
             f"Mean turn: {turn_total / turns:.2f}s over {turns} turns.",
-            "",
         ]
-        return lines
+        if round(waiting, 2) < round(provider_total, 2):
+            lines += [
+                "",
+                f"{provider_total - waiting:.2f}s of provider time was spent inside another "
+                f"call's wait — that is what the concurrent calls saved, and it is the "
+                f"difference between the two rows above.",
+            ]
+        return [*lines, ""]
 
     def headline(self) -> str:
         """One line of the baseline, for the terminal at the end of a run."""
@@ -434,6 +514,8 @@ class Recorder:
                     "tests": len(written),
                     "turns": len(turns),
                     "turn_total_s": round(turn_total, 3),
+                    # Overlap counted once — what removing every call would save.
+                    "waiting_s": round(sum(c.waiting_s for c in written), 3),
                     "turn_p50_s": round(timing.percentile([t.took_s for t in turns], 0.50), 3),
                     "turn_p95_s": round(timing.percentile([t.took_s for t in turns], 0.95), 3),
                     "calls": len(calls),

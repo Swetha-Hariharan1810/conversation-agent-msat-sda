@@ -56,14 +56,30 @@ UNLABELLED = "unlabelled"
 
 @dataclass(frozen=True)
 class Call:
-    """One provider call: what it was for, how long it took, whether it worked."""
+    """One provider call: what it was for, when it started, how long, and whether it worked.
+
+    ``at`` is the offset from when its timeline started collecting. It is what
+    makes overlap visible: two calls that run together cost the sum of their
+    seconds and only the longer of their waits, and without a start time there is
+    no way to tell that apart from two calls that ran one after the other.
+    """
 
     role: str
     seconds: float
     ok: bool = True
+    at: float = 0.0
+
+    @property
+    def until(self) -> float:
+        return self.at + self.seconds
 
     def as_dict(self) -> dict:
-        return {"role": self.role, "seconds": round(self.seconds, 3), "ok": self.ok}
+        return {
+            "role": self.role,
+            "seconds": round(self.seconds, 3),
+            "ok": self.ok,
+            "at": round(self.at, 3),
+        }
 
 
 class Timeline:
@@ -74,10 +90,11 @@ class Timeline:
     having to know anything about timing.
     """
 
-    __slots__ = ("calls", "_drained")
+    __slots__ = ("calls", "started", "_drained")
 
     def __init__(self) -> None:
         self.calls: list[Call] = []
+        self.started = time.perf_counter()
         self._drained = 0
 
     def add(self, call: Call) -> None:
@@ -134,10 +151,35 @@ def measure(role: str) -> Iterator[None]:
         ok = False
         raise
     finally:
-        timeline.add(Call(role or UNLABELLED, time.perf_counter() - started, ok))
+        timeline.add(
+            Call(role or UNLABELLED, time.perf_counter() - started, ok, started - timeline.started)
+        )
 
 
 # ── reading the numbers back ─────────────────────────────────────────────
+
+
+def busy_seconds(calls: Sequence[Call]) -> float:
+    """How long these calls held the turn up, counting overlap once.
+
+    Two calls made together cost the sum of their seconds and only the longer of
+    their waits. Summing durations answers "what did the provider spend on this
+    turn"; this answers "how long did the member wait for it", and once anything
+    runs concurrently those are different questions with different answers.
+
+    The calls must share a timeline for their ``at`` offsets to be comparable —
+    per turn or per test, never across two tests.
+    """
+    spans = sorted((call.at, call.until) for call in calls)
+    total = 0.0
+    open_at = closed_at = 0.0
+    for start, end in spans:
+        if start > closed_at:
+            total += closed_at - open_at
+            open_at, closed_at = start, end
+        else:
+            closed_at = max(closed_at, end)
+    return total + (closed_at - open_at)
 
 
 def percentile(values: Sequence[float], share: float) -> float:
@@ -218,6 +260,7 @@ __all__ = [
     "RoleStats",
     "Timeline",
     "active",
+    "busy_seconds",
     "collecting",
     "measure",
     "percentile",

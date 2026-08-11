@@ -100,10 +100,25 @@ of them the member was waiting on. Each call is timed on its own and labelled
 with the role it played, so it does:
 
 ```markdown
-**3. safeguarding_stops_the_survey** · 2.41s (2.28s in 3 model calls)
+**3. safeguarding_stops_the_survey** · 2.41s (1.90s waiting on 3 model calls, 2.28s of provider time)
 
-- calls: guard 0.38s · extract 0.71s · generate 1.19s
+- calls: guard 0.38s · extract 0.71s · generate 1.19s — guard + extract ran together
 ```
+
+### Waiting is not the same as provider time
+
+The guard call and the extraction call go out together, so a turn can spend more
+provider seconds than it lasts. The two numbers are kept apart everywhere:
+
+| | |
+|---|---|
+| **provider time** | every call's duration added up — what was spent |
+| **waiting** | the same calls with overlap counted once — what the member sat through |
+
+A role's *share of turn time* is against turn time, so on a turn where two calls
+overlap the shares can add up to more than the waiting did. That is the point of
+the note under the baseline table: removing a role saves what it did not share
+with another call, not its whole share.
 
 Every transcript opens with the same thing added up for that test, and `index.md`
 closes with it added up for the whole run — per-role p50, p95, slowest and total,
