@@ -53,7 +53,7 @@ judgement.
 Each entry is one test, and inside it each exchange the test put to the model:
 
 ```markdown
-## ✓ tests/live/test_full_turns.py::test_a_safeguarding_turn_stops_the_survey…
+## ✓ tests/live/test_full_calls.py::test_the_whole_call…
 
 **safeguarding.hopelessness_oblique**
 
@@ -67,10 +67,9 @@ Each entry is one test, and inside it each exchange the test put to the model:
 - decided: `{"recorded": {}, "phase": "done", "disposition": "safeguarding_handoff"}`
 ```
 
-The second caller line only appears where the test ran a whole turn through the
-agent — `test_full_turns.py`. The guard and extraction tests stop at a decision,
-so their entries are the caller's question, the member's reply, and what was made
-of it.
+The second caller line only appears where the test ran a turn through the whole
+agent — `test_full_calls.py`. Guard detection stops at a decision, so its entries
+are the caller's question, the member's reply, and what was made of it.
 
 ## Timing is per turn
 

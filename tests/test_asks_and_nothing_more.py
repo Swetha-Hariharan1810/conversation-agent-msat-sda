@@ -8,15 +8,19 @@ question back up, to speak to something raised — and bridging is why it is the
 
 So the predicate is worth exactly as much as its false cases, and each one below
 is a turn that must keep its generated line. Two of them look like duplicates and
-are not:
+are not — and what makes them non-redundant is no longer what it was:
 
-* a ``SIDE_REQUEST`` raised **this** turn leaves the ack empty and is never
-  spoken to, so only ``secondary_intents`` catches it;
-* an ``UNSUPPORTED`` intent left open by an **earlier** turn is not in this
-  turn's ``secondary_intents`` at all, so only the ledger catches it.
+* ``secondary_intents`` is **this** turn. It catches every kind, and it is the
+  only thing that catches the three that never draw a line: a ``SIDE_REQUEST``,
+  a ``CLARIFICATION``, an ``OFF_TOPIC``. ``ACK_ONLY_KINDS`` is ``UNSUPPORTED``
+  alone, so all three leave the ack empty; an ``OFF_TOPIC`` is filed NOTED and
+  is never open, so the ledger check cannot see it at any point.
+* the ledger is **earlier** turns. An ``UNSUPPORTED`` intent still owed its line
+  is not in this turn's ``secondary_intents`` at all.
 
-Collapse the two checks into one and one of those members is answered with a
-fixed line and their request disappears without a word.
+It used to be one kind outside ``ACK_ONLY_KINDS``; it is three now. Collapse the
+two checks into one and any of those members is answered with a fixed line and
+what they raised disappears without a word.
 
 The last test is the mutation rule, and it is the reason the predicate reads the
 ledger through ``open_intents`` rather than ``side_request_ack``: the latter
@@ -31,7 +35,7 @@ import pytest
 
 from msat_flow.agents.survey_agent import MsatSurveyAgent
 from msat_flow.core.pending_intents import IntentKind, IntentStatus, PendingIntent
-from msat_flow.llm.schema import EventType, TurnDecision
+from msat_flow.llm.schema import EventType, SecondaryIntent, SecondaryIntentKind, TurnDecision
 from msat_flow.planner import Action, Plan
 from msat_flow.script.spec import load_spec
 
@@ -146,7 +150,11 @@ def test_a_turn_that_raised_something_alongside_the_answer(agent):
     ledger's ack-only kinds do not see it. What answers it today is the generator
     getting the member's own words — so this turn must keep its generated line.
     """
-    decision = _answered(secondary_intents=["can you send me a paper copy?"])
+    decision = _answered(
+        secondary_intents=[
+            SecondaryIntent(text="can you send me a paper copy?", kind=SecondaryIntentKind.REQUEST)
+        ]
+    )
     agent.capture_and_triage(decision)
 
     kinds = {intent["kind"] for intent in agent._pending_intents}
@@ -182,7 +190,7 @@ def test_an_intent_already_spoken_to_is_no_longer_owed_a_line(agent):
 
 
 def test_a_correction_on_the_ledger_does_not_by_itself_block_a_plain_ask(agent):
-    """``ACK_ONLY_KINDS`` is ``UNSUPPORTED`` and ``OFF_TOPIC``, and nothing else.
+    """``ACK_ONLY_KINDS`` is ``UNSUPPORTED``, and nothing else.
 
     An open correction is answered by re-asking the question it belongs to, which
     the planner does; it is not owed a spoken acknowledgement, so it must not be

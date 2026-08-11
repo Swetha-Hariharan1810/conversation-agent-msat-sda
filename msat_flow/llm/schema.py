@@ -53,6 +53,51 @@ class IdentityDetail(StrEnum):
     WRONG_NUMBER = "wrong_number"  # no such person here
 
 
+class SecondaryIntentKind(StrEnum):
+    """What kind of thing the member raised alongside — or instead of — an answer.
+
+    Asked of the model rather than worked out from its own paraphrase afterwards.
+    What it decides is what happens to the remark: whether the caller says a line
+    about it, whether it is reported at the end of the call as something a person
+    still has to deal with, or whether it is simply heard and let go.
+
+    ``MEMBER_SERVICES`` is the one with consequences — somebody waiting on a
+    claim — so it is the one worth getting right. The others exist mostly to keep
+    it clean: a survey line that reports every "what counts as a resource?" and
+    every "my daughter's visiting" as an outstanding member request buries the
+    entries that are real.
+
+    ``UNSPECIFIED`` is the default so that a model which returns nothing at all
+    still produces a usable turn. What happens to an unlabelled remark is decided
+    from its wording in ``core/dialogue_manager.py``, which is the fallback and
+    says so.
+    """
+
+    UNSPECIFIED = ""
+    MEMBER_SERVICES = "member_services"  # their policy, a claim, a bill — not this call's job
+    REQUEST = "request"  # they asked us to do something about the programme
+    ABOUT_THE_SURVEY = "about_the_survey"  # a question about the question just put
+    ASIDE = "aside"  # a remark that asks nothing of us
+
+
+class SecondaryIntent(BaseModel):
+    """One thing the member raised, and what kind of thing it is."""
+
+    text: str = Field(description="what they raised, as one short phrase")
+    kind: SecondaryIntentKind = Field(
+        default=SecondaryIntentKind.UNSPECIFIED,
+        description=(
+            "member_services: about their policy, a claim, a bill, premiums, coverage, benefits "
+            "or an ID card — anything somebody is waiting on an answer to that this survey line "
+            "cannot give. request: they asked us to do something about the programme or the "
+            "survey — send the results, post a copy, pass a message on. about_the_survey: a "
+            "question about the question just put — what a word in it means, whether something "
+            "counts, or asking us to say it again. aside: a remark that asks nothing of us. "
+            "Set one for every entry; where two fit, the earlier one in that list wins."
+        ),
+    )
+
+
 class GuardAssessment(BaseModel):
     """Whether one member turn is something the survey cannot carry on through.
 
@@ -128,11 +173,13 @@ class TurnDecision(BaseModel):
     corrections: dict[str, str] = Field(
         default_factory=dict, description="slot name -> revised answer, when the member changed one"
     )
-    secondary_intents: list[str] = Field(
+    secondary_intents: list[SecondaryIntent] = Field(
         default_factory=list,
         description=(
             "anything else they raised in the same turn — a question for us, a request, a "
-            "complaint. One short phrase each. A request to repeat the question goes here too."
+            "complaint, a remark. One entry each: the phrase in `text`, and what kind of thing "
+            "it is in `kind`. A request to repeat the question goes here too, as "
+            "about_the_survey."
         ),
     )
     identity_detail: IdentityDetail = Field(

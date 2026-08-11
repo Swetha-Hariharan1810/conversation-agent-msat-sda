@@ -26,7 +26,7 @@ import asyncio
 from ..core import guards
 from ..core.agent import BaseAgent
 from ..core.guards import GuardOutcome
-from ..core.pending_intents import ACK_ONLY_KINDS, open_intents
+from ..core.pending_intents import ACK_ONLY_KINDS, open_intents, unfinished
 from ..llm.extractor import extract
 from ..llm.response_generator import generate
 from ..llm.schema import EventType, IdentityDetail, TurnDecision
@@ -580,13 +580,17 @@ class MsatSurveyAgent(BaseAgent):
 
         * ``secondary_intents`` is what the member raised in this turn.
         * ``open_intents(..., kinds=ACK_ONLY_KINDS)`` is what is still owed a
-          line, and it covers ``UNSUPPORTED`` and ``OFF_TOPIC`` only.
+          line, and it covers ``UNSUPPORTED`` and nothing else — there is one
+          acknowledgement to say and it is a sentence about member services.
 
-        A ``SIDE_REQUEST`` is neither of those: it goes on the ledger, it is
-        never spoken to, and it leaves the ack empty. Today that turn still
-        reaches the generator with the member's own words as
-        ``last_member_message``, and the agent can answer them. Collapse the two
-        checks into one and that turn gets a fixed line instead, and the request
+        Three kinds are neither: ``SIDE_REQUEST``, ``CLARIFICATION`` and
+        ``OFF_TOPIC`` all go on the ledger and all leave the ack empty, and an
+        ``OFF_TOPIC`` is filed NOTED so it is never open either. Today those
+        turns still reach the generator with the member's own words as
+        ``last_member_message``, and the agent can answer them — which is why a
+        call full of asides and questions about the question sounds right even
+        when nothing is said about them explicitly. Collapse the two checks into
+        one and those turns get a fixed line instead, and what the member raised
         is dropped in silence.
         """
         if decision is None:
@@ -630,6 +634,14 @@ class MsatSurveyAgent(BaseAgent):
             attempt=self.slot(retry_slot).attempt_count if retry_slot else 0,
             attempt_limit=self._gate_limit(retry_slot) if retry_slot else self.spec.policy.max_asks_per_slot,
         )
+
+        # The line just composed puts the question again, which is the answer to
+        # a member who asked what it meant or asked to hear it once more. Said
+        # after the line rather than before it because that is when it is true —
+        # and true even when the provider failed, since the fallback reads the
+        # script's own wording, options and all.
+        if retry_slot:
+            self.resolve_clarifications()
 
         extra: dict = {"phase": _ACTION_PHASE.get(plan.action, "survey")}
         asked = retry_slot or (plan.slot if plan.action in QUESTION_ACTIONS else "")
@@ -752,8 +764,10 @@ class MsatSurveyAgent(BaseAgent):
                     payload_lookup=payload_lookup,
                 ),
                 "visited_nodes": list(self._visited),
-                "open_intents": [
-                    intent for intent in self._pending_intents if intent.get("status") == "open"
-                ],
+                # What the call did not finish, which is not the same as what it
+                # did not say. The line about member services is a promise to
+                # pass something on; the passing on happens here, in a list a
+                # person works through, so an acknowledged request stays in it.
+                "open_intents": unfinished(self._pending_intents),
             }
         }

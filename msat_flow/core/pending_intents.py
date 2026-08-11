@@ -16,17 +16,32 @@ class IntentKind(StrEnum):
     CORRECTION = "correction"  # member revised an answer they already gave
     SIDE_REQUEST = "side_request"  # member asked us for something
     UNSUPPORTED = "unsupported"  # about their policy or the program, not this call's job
-    OFF_TOPIC = "off_topic"
+    CLARIFICATION = "clarification"  # a question about the question we just put
+    OFF_TOPIC = "off_topic"  # a remark that asks nothing of us
 
 
 class IntentStatus(StrEnum):
     OPEN = "open"
     ACKNOWLEDGED = "acknowledged"
     RESOLVED = "resolved"
+    # Heard, kept, and owed nothing. An aside is not a request, and filing it as
+    # one is how a report of things a person must action fills up with remarks
+    # about the weather. It is still written down — on this call the unprompted
+    # remark may be the most useful sentence of the survey — it is just not
+    # written down as work.
+    NOTED = "noted"
 
 
 # Kinds that must be spoken aloud once but must not rewind the survey.
-ACK_ONLY_KINDS = frozenset({IntentKind.UNSUPPORTED.value, IntentKind.OFF_TOPIC.value})
+#
+# ``UNSUPPORTED`` and nothing else, because there is exactly one acknowledgement
+# to say — "I'll note that and pass it on to the program team" — and it is a
+# sentence about member services. Said back to somebody telling us their daughter
+# is visiting, it is worse than saying nothing: it answers a remark that asked
+# nothing with a promise nobody wanted. ``OFF_TOPIC`` and ``CLARIFICATION`` are
+# answered by the line the generator composes with the member's own words in
+# hand, not by this one.
+ACK_ONLY_KINDS = frozenset({IntentKind.UNSUPPORTED.value})
 
 
 @dataclass
@@ -52,6 +67,26 @@ def add_intent(intents: list[dict], intent: PendingIntent) -> list[dict]:
         if same:
             return intents
     return [*intents, incoming]
+
+
+def unfinished(intents: list[dict]) -> list[dict]:
+    """Everything still needing somebody, in the order it was raised.
+
+    OPEN and ACKNOWLEDGED both count, and the second is the one worth spelling
+    out: the acknowledgement is a promise — "I'll note that and pass it on to the
+    program team" — and saying it does not do it. A member-services request that
+    dropped out of the report the moment the caller said that sentence would be a
+    call that promised a person would look at the claim and then told nobody.
+
+    RESOLVED and NOTED are what the call really finished: the question that was
+    read out again, the answer that was corrected, the remark that asked for
+    nothing.
+    """
+    return [
+        intent
+        for intent in intents or []
+        if intent.get("status") in (IntentStatus.OPEN.value, IntentStatus.ACKNOWLEDGED.value)
+    ]
 
 
 def open_intents(intents: list[dict], *, kinds: frozenset[str] | None = None) -> list[dict]:
