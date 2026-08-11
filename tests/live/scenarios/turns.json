@@ -19,6 +19,8 @@
     "  expect_corrections   slot -> value that must arrive as a correction",
     "  expect_declines      whether the member refused the question",
     "  expect_identity_detail  \"wrong_number\" or \"unavailable\"",
+    "  expect_event         the EventType the turn must be labelled with",
+    "  expect_nothing       true when NOTHING may be recorded from this turn at all",
     "",
     "Every field is optional but 'member'. Assert only what the scenario is about —",
     "an assertion the prompt never promised is a failing test that reports nothing."
@@ -175,6 +177,62 @@
         "would_recommend": "yes"
       },
       "why": "Answered and asked something back. The answer must still land, and the question should surface as a secondary intent."
+    },
+    {
+      "id": "asks_us_to_repeat_the_question",
+      "awaiting": "would_recommend",
+      "last_agent": "Would you recommend the program to people you know?",
+      "member": "Sorry, could you say that again?",
+      "expect_event": "ANSWERED_WITH_REQUEST",
+      "expect_nothing": true,
+      "expect_declines": false,
+      "why": [
+        "The turn this whole change exists for. A member who did not hear the question",
+        "has not answered it wrongly — they have not been asked it yet in terms they",
+        "could answer. Labelled AMBIGUOUS it costs them a retry and, three of those in,",
+        "gets reported to the business as a question they would rather not answer."
+      ]
+    },
+    {
+      "id": "asks_us_to_repeat_it_mid_answer",
+      "awaiting": "resource_helpfulness",
+      "last_agent": "How helpful were they in making at least one lifestyle change? Extremely helpful; somewhat helpful; not very helpful; definitely not helpful.",
+      "member": "They were — sorry, what were the choices again?",
+      "expect_event": "ANSWERED_WITH_REQUEST",
+      "expect_nothing": true,
+      "why": [
+        "They started to answer and stopped. There is a rating coming and it is not this",
+        "turn's to guess: 'they were' is not one of the four options and must not be",
+        "rounded to the nearest one."
+      ]
+    },
+    {
+      "id": "asks_what_a_word_in_the_question_means",
+      "awaiting": "reviewed_resources",
+      "last_agent": "Were you able to review any of the program resources such as action plans, articles, videos, or websites?",
+      "member": "What counts as a resource, exactly?",
+      "expect_event": "ANSWERED_WITH_REQUEST",
+      "expect_nothing": true,
+      "expect_declines": false,
+      "why": [
+        "Not knowing what is being asked is not an unclear answer to it. The script's own",
+        "wording lists what counts, so re-reading the question IS the reply — but only if",
+        "the turn is not first recorded as a failed attempt."
+      ]
+    },
+    {
+      "id": "asks_something_the_script_cannot_answer",
+      "awaiting": "reviewed_resources",
+      "last_agent": "Were you able to review any of the program resources such as action plans, articles, videos, or websites?",
+      "member": "Does that include the calls with my coach?",
+      "expect_event": "ANSWERED_WITH_REQUEST",
+      "expect_nothing": true,
+      "expect_declines": false,
+      "why": [
+        "The harder half: a fair question the script has no answer to. It must still not",
+        "be read as an answer, and it must not be guessed at — 'yes' here would record a",
+        "review of resources the member has just told us they may never have opened."
+      ]
     }
   ]
 }
