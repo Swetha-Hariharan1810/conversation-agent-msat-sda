@@ -179,6 +179,15 @@ async def test_the_whole_call(client, spec, transcript, call):
             f"a question they had to ask us about first is not one they refused{context}"
         )
 
+    # The other direction, and rarer on purpose. A question the member really
+    # would not answer, or one that was put as often as policy allows and never
+    # landed, has to be reported as such — a survey that quietly drops it reads
+    # as a shorter questionnaire rather than as a gap.
+    for slot in expect.get("declined") or []:
+        assert slot in declined, (
+            f"{call['id']}: {slot!r} should have been reported as declined{context}"
+        )
+
     skipped = {entry.get("slot") for entry in outcome.get("skipped_questions") or []}
     for slot in expect.get("skipped") or []:
         assert slot in skipped, (

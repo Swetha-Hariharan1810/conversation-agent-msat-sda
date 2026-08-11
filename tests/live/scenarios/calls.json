@@ -23,6 +23,7 @@
     "  expect.not_asked     slots the member must never be asked for",
     "  expect.skipped       slots the outcome must report as skipped",
     "  expect.not_declined  slots the outcome must NOT report as declined",
+    "  expect.declined      slots the outcome MUST report as declined",
     "  expect.reported_intents      kinds that MUST reach the outcome's open_intents",
     "  expect.not_reported_intents  kinds that must NOT be in it",
     "",
@@ -485,6 +486,7 @@
         "reached_policyholder": "Yes, speaking.",
         "participation_consent": "Yes, that's fine.",
         "reviewed_resources": "Yes I did, and they were somewhat helpful actually — I've started walking every morning because of them.",
+        "resource_helpfulness": "Somewhat helpful, as I said.",
         "improvement_feedback": "No, nothing I can think of.",
         "liked_most": "The walking, mostly.",
         "would_recommend": [
@@ -510,7 +512,8 @@
           "overall_experience"
         ],
         "not_asked": [
-          "no_review_reason"
+          "no_review_reason",
+          "resource_helpfulness"
         ]
       },
       "why": [
@@ -529,7 +532,12 @@
         "The restraint is the load-bearing half and the hard half: there is always a",
         "nearest option. What proves it end to end is that overall_experience comes out",
         "extremely_helpful — the answer she gave — and not somewhat_helpful, the answer",
-        "she was nearest to."
+        "she was nearest to.",
+        "",
+        "resource_helpfulness carries a reply she should never need to give. If it is",
+        "put to her at all, the call still finishes — and fails saying she was asked",
+        "something she had already answered, which is the finding, rather than dying on",
+        "a missing script line."
       ]
     },
     {
@@ -687,6 +695,359 @@
         "IS the answer to whether we reached her, and the survey must not be put to the",
         "daughter who answered — she never consented to anything and the answers would",
         "not be her mother's."
+      ]
+    },
+    {
+      "id": "confused_by_the_question_then_answers_it",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "rcm-live-016",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, that's fine.",
+        "reviewed_resources": "Yes, a few of them.",
+        "resource_helpfulness": [
+          "I'm not sure I follow you — helpful how, exactly?",
+          "Oh, I see what you mean. Somewhat helpful, then."
+        ],
+        "improvement_feedback": "Nothing really.",
+        "liked_most": "The articles were clear enough.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful."
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": {
+          "resource_helpfulness": "somewhat_helpful"
+        },
+        "not_declined": [
+          "resource_helpfulness"
+        ],
+        "not_reported_intents": [
+          "clarification"
+        ]
+      },
+      "why": [
+        "Confusion is not an unclear answer. 'Helpful how, exactly?' is somebody who",
+        "has not been asked the question in terms she can answer yet, and reading it as",
+        "a failed attempt charges her for it — three of those and the question is filed",
+        "as one she would rather not answer.",
+        "",
+        "Two things are asserted and the second is the newer one: the rating she gives",
+        "once she understands must land, AND her question must not still be sitting in",
+        "the report at the end of the call. Putting the question again IS the answer to",
+        "it, so nothing is owed by the time the call closes."
+      ]
+    },
+    {
+      "id": "one_question_never_gets_a_usable_answer",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "rcm-live-017",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, go on.",
+        "reviewed_resources": "Yes, I looked at some.",
+        "resource_helpfulness": "Oh, it's hard to say really. They were what they were.",
+        "improvement_feedback": "Nothing really.",
+        "liked_most": "The articles were clear enough.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful."
+      },
+      "expect": {
+        "disposition": "partially_surveyed",
+        "declined": [
+          "resource_helpfulness"
+        ],
+        "answers": {
+          "reviewed_resources": "yes",
+          "overall_experience": "somewhat_helpful"
+        },
+        "not_asked": [
+          "no_review_reason"
+        ]
+      },
+      "why": [
+        "Retry exhaustion, which every other call avoids. She says the same unusable",
+        "thing however often it is put, and 'they were what they were' is not one of the",
+        "four options at any point.",
+        "",
+        "Three things have to be true at once. Nothing is recorded — the nearest option",
+        "is somewhat_helpful and it is still a guess. The question stops being asked",
+        "rather than going round for ever. And the call CARRIES ON: one question that",
+        "cannot be settled is a gap in a survey, not a reason to stop surveying, so the",
+        "five questions after it are still asked and answered and the disposition is",
+        "partially_surveyed rather than ended_early.",
+        "",
+        "This is the one place 'declined' is asserted as something that MUST happen.",
+        "Everywhere else it is the thing that must not."
+      ]
+    },
+    {
+      "id": "asks_for_a_person_mid_survey",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "rcm-live-018",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, alright.",
+        "reviewed_resources": "Actually, could I speak to a real person about all this?",
+        "resource_helpfulness": "THIS MUST NEVER BE ASKED",
+        "improvement_feedback": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "representative_requested",
+        "not_asked": [
+          "resource_helpfulness",
+          "improvement_feedback"
+        ]
+      },
+      "why": [
+        "The escalation nobody is in danger from, and the one this suite never covered",
+        "end to end — safeguarding was tested as a whole call and this was not.",
+        "",
+        "A member who asks for a person gets a person: the survey stops where it is, the",
+        "approved handoff line is said exactly as written, and the call is handed over",
+        "with a reason a human can read. Carrying on to question 1b after somebody has",
+        "asked to speak to someone is the rudest thing this agent could do."
+      ]
+    },
+    {
+      "id": "an_answering_machine_picks_up",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "rcm-live-019",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Hello, you've reached Margaret. I'm not able to take your call right now — please leave a message after the tone.",
+        "participation_consent": "THIS MUST NEVER BE ASKED",
+        "reviewed_resources": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "voicemail_left",
+        "not_asked": [
+          "participation_consent",
+          "reviewed_resources"
+        ]
+      },
+      "why": [
+        "A recording cannot consent to anything. The voicemail message is left and the",
+        "call ends there — a survey put to an answering machine would produce answers",
+        "attributed to a member who never picked up the phone.",
+        "",
+        "The guard file tests whether this turn is RECOGNISED. Only a whole call shows",
+        "what happens next, which is the part that matters: the approved voicemail",
+        "wording, said exactly, and nothing asked after it."
+      ]
+    },
+    {
+      "id": "steps_away_once_too_often",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "rcm-live-020",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, alright.",
+        "reviewed_resources": [
+          "Hang on love, there's somebody at the door.",
+          "Sorry — one moment, the kettle's going.",
+          "Just a second, let me find my glasses.",
+          "Hold on, the dog's at it again."
+        ],
+        "resource_helpfulness": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "ended_early",
+        "not_asked": [
+          "resource_helpfulness"
+        ]
+      },
+      "why": [
+        "The other end of hold_then_carries_on. A member who keeps stepping away is not",
+        "refusing anything, and the agent waits — but not for ever, and not by talking",
+        "into an empty room.",
+        "",
+        "max_consecutive_holds is 3, so the fourth ends the call politely with the",
+        "answers already collected kept. Reported as ended_early rather than as a member",
+        "who would not answer: nobody declined anything here, the call just never got",
+        "going."
+      ]
+    },
+    {
+      "id": "will_not_say_who_she_is",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "rcm-live-021",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Who's asking, sorry?",
+        "participation_consent": "THIS MUST NEVER BE ASKED",
+        "reviewed_resources": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "ended_early",
+        "not_asked": [
+          "participation_consent",
+          "reviewed_resources"
+        ]
+      },
+      "why": [
+        "A gate that never settles. There is no version of this survey that runs without",
+        "knowing who is on the line, so the call ends politely rather than surveying",
+        "somebody who was never identified — and it must never fall through to consent.",
+        "",
+        "Read this one alongside what it costs. max_identity_asks is 2, and asking us",
+        "who WE are does not spend a retry but does spend an ask, so a member who says",
+        "'who's asking?' twice has this call ended on her third turn. That is current,",
+        "deliberate behaviour and it is what this scenario pins. It is also exactly the",
+        "case the ask-budget proposal is about: if that budget changes, this scenario",
+        "changes with it, and it should be read as the reason rather than as a",
+        "regression."
+      ]
+    },
+    {
+      "id": "would_rather_not_answer_one_question",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "rcm-live-022",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, that's fine.",
+        "reviewed_resources": "Yes, a few of the articles.",
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "Nothing really.",
+        "liked_most": "I'd rather not get into all that, if it's all the same to you.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful."
+      },
+      "expect": {
+        "disposition": "partially_surveyed",
+        "declined": [
+          "liked_most"
+        ],
+        "answers": {
+          "reviewed_resources": "yes",
+          "would_recommend": "yes",
+          "overall_experience": "somewhat_helpful"
+        },
+        "not_declined": [
+          "improvement_feedback"
+        ]
+      },
+      "why": [
+        "A real refusal, which is different from all four of the things that merely look",
+        "like one. She would rather not say, on one question, and that is an answer",
+        "about the survey rather than a failure of the call: it is recorded, the call",
+        "goes on, and nothing is escalated over it.",
+        "",
+        "The pairing is the point. 'Nothing really' on improvement_feedback is an answer",
+        "and must NOT be declined; 'I'd rather not get into all that' on the very next",
+        "question must be. They are one sentence apart in the transcript and a survey",
+        "apart in the result."
+      ]
+    },
+    {
+      "id": "wants_a_call_back_but_not_at_a_time_she_will_name",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "rcm-live-023",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "rising"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Not just now, I'm in the middle of something.",
+        "wants_reschedule": "Yes, that would be better.",
+        "reschedule_datetime": "Oh, I couldn't say — whenever suits you, really.",
+        "reviewed_resources": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "reschedule_requested",
+        "not_asked": [
+          "reviewed_resources"
+        ]
+      },
+      "why": [
+        "A reschedule where the member never names a time, on a rising-tier member so",
+        "the tier is not always the high one in the interesting calls.",
+        "",
+        "The call must still end as a reschedule request rather than as a survey — and",
+        "must not slide into the questions because consent was never given. Note what",
+        "this pins about the datetime: the first non-empty thing she says to that",
+        "question is captured verbatim and becomes the requested time, so today the work",
+        "item goes back with 'whenever suits you, really' in it. That is a real weakness",
+        "and it is written down here rather than asserted, because asserting it would",
+        "make it look intended."
       ]
     }
   ]
