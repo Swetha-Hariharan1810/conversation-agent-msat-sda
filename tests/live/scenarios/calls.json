@@ -22,6 +22,7 @@
     "  expect.answers       slot -> the value that must be in the outcome",
     "  expect.not_asked     slots the member must never be asked for",
     "  expect.skipped       slots the outcome must report as skipped",
+    "  expect.not_declined  slots the outcome must NOT report as declined",
     "",
     "A guard mid-call needs no special mechanism: make the guard line the reply to",
     "whichever question it should interrupt.",
@@ -353,6 +354,114 @@
         ]
       },
       "why": "Ends the call and is reported so the list can be updated. Whatever was answered before it is kept."
+    },
+    {
+      "id": "asks_us_to_repeat_and_still_gets_surveyed",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "rcm-live-010",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, alright.",
+        "reviewed_resources": [
+          "Sorry, could you say that again?",
+          "Yes, I read a few of the articles."
+        ],
+        "resource_helpfulness": [
+          "They were — sorry, what were the choices again?",
+          "Somewhat helpful."
+        ],
+        "improvement_feedback": "Nothing really.",
+        "liked_most": "The articles were clear enough.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful."
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": {
+          "reviewed_resources": "yes",
+          "resource_helpfulness": "somewhat_helpful"
+        },
+        "not_declined": [
+          "reviewed_resources",
+          "resource_helpfulness"
+        ],
+        "not_asked": [
+          "no_review_reason"
+        ]
+      },
+      "why": [
+        "A member who did not catch the question, twice, and answered both times once",
+        "they had. Nothing here is a refusal and nothing here is an unclear answer, so",
+        "the call must end 'surveyed' with both ratings in the file.",
+        "",
+        "This is the end-to-end half of the repeat-request work: the single-turn",
+        "scenarios check the label, and only a whole call can show what the label COSTS.",
+        "Read as unclear answers these turns spend the slot's retry budget, and the",
+        "outcome reports a member who was trying to answer as one who would rather not",
+        "say. The second one is a repeat asked mid-answer, which must not leave half a",
+        "rating behind either."
+      ]
+    },
+    {
+      "id": "asks_what_the_question_means_and_still_gets_surveyed",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "rcm-live-011",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, that's fine.",
+        "reviewed_resources": [
+          "What counts as a resource, exactly?",
+          "Does that include the calls with my coach?",
+          "Right — then yes, I looked at a few of the articles."
+        ],
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "Nothing really.",
+        "liked_most": "The articles were clear enough.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful."
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": {
+          "reviewed_resources": "yes"
+        },
+        "not_declined": [
+          "reviewed_resources"
+        ],
+        "not_asked": [
+          "no_review_reason"
+        ]
+      },
+      "why": [
+        "Two questions back before the member could answer the first question, and the",
+        "second is one the script has no answer to. Both must be treated as somebody",
+        "working out what is being asked, not as somebody failing to answer it.",
+        "",
+        "The 'yes' at the end is the one that matters: a clarifying question must never",
+        "be guessed into an answer, and the answer that eventually comes must still land."
+      ]
     }
   ]
 }

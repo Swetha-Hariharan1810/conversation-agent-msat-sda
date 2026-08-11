@@ -18,9 +18,11 @@ that skips entirely explains itself on the spot.
 from __future__ import annotations
 
 import os
+from collections.abc import Iterator
 
 import pytest
 
+from msat_flow.llm import timing
 from msat_flow.llm.client import LLMClient
 from msat_flow.script.spec import load_spec
 
@@ -71,9 +73,17 @@ def recorder(client) -> Recorder:
 
 
 @pytest.fixture
-def transcript(recorder, request) -> TestTranscript:
-    """Where a test writes what was said. One per test, keyed by node id."""
-    return TestTranscript(recorder.conversation(request.node.nodeid))
+def transcript(recorder, request) -> Iterator[TestTranscript]:
+    """Where a test writes what was said. One per test, keyed by node id.
+
+    Provider calls made while the test runs are collected alongside it, each
+    under the role it played, and drained onto the exchange that made them —
+    which is why a transcript can say that a 2.4-second turn was 1.8 seconds of
+    generating the line rather than just that it was slow. Collection stops with
+    the test, so nothing a fixture or another test does lands on this one.
+    """
+    with timing.collecting() as timeline:
+        yield TestTranscript(recorder.conversation(request.node.nodeid), timeline)
 
 
 @pytest.hookimpl(hookwrapper=True)
@@ -110,6 +120,12 @@ def pytest_sessionfinish(session, exitstatus):
         reporter = session.config.pluginmanager.get_plugin("terminalreporter")
         if reporter is not None:
             reporter.write_line(f"\nconversations written to {directory} (see index.md)")
+            # The latency baseline, on the terminal as well as in index.md: the
+            # question it answers — which of a turn's three calls the member is
+            # waiting on — is one nobody thinks to go and look up.
+            headline = keeper.headline()
+            if headline:
+                reporter.write_line(f"latency: {headline}")
 
 
 @pytest.fixture(scope="session", autouse=True)

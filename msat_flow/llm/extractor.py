@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from ..script.spec import SlotType, SurveySpec
 from ..slots.types import describe, slot_spec
-from . import prompts
+from . import prompts, timing
 from .schema import TurnDecision
 
 
@@ -81,7 +81,7 @@ async def extract(
         last_agent_message=last_agent_message,
         member_text=member_text,
     )
-    decision = await client.structured(messages, TurnDecision)
+    decision = await client.structured(messages, TurnDecision, role=timing.EXTRACT)
 
     # Drop unknown slot NAMES only. The values themselves still have to survive
     # normalisation and validation, which is where an invented option is caught.

@@ -23,7 +23,7 @@ from __future__ import annotations
 import re
 
 from ..planner import Action, Plan
-from . import prompts
+from . import prompts, timing
 
 # The document writes the policyholder's name as "[policyholder's full name]".
 # Whatever else happens, that must never be said out loud.
@@ -90,10 +90,15 @@ def build_messages(
             "speak_line.retry",
             slot=retry_slot.replace("_", " "),
             reason=retry_reason or "it was unclear",
-            attempt=attempt,
-            limit=attempt_limit,
         )
         if retry_slot
+        else "",
+        # Only once something has actually been spent. A question the member
+        # asked us to repeat is put again without charging an attempt, and
+        # "attempt 0 of 3" told the model to press somebody who had not yet had
+        # a chance to answer.
+        prompts.render("speak_line.attempt", attempt=attempt, limit=attempt_limit)
+        if retry_slot and attempt >= 1
         else "",
         prompts.render("speak_line.acknowledge", ack=ack) if ack else "",
     )
@@ -134,7 +139,7 @@ async def generate(
         attempt_limit=attempt_limit,
     )
     try:
-        spoken = await client.text(messages)
+        spoken = await client.text(messages, role=timing.GENERATE)
     except Exception:  # pragma: no cover - provider failure must not drop the call
         return fallback(plan, ack)
     return spoken or fallback(plan, ack)

@@ -55,6 +55,19 @@ for. The turns it puts to the model, and what each should be decided as, are in
 `tests/live/scenarios/*.json`: adding a case is adding an object to a list.
 See `tests/live/README.md`.
 
+A live run also times each of the three provider calls a turn makes — the guard
+call, the extraction call and the line the agent speaks — separately, and closes
+with a per-role latency baseline: p50, p95 and each role's share of turn time.
+Which of the three the member is waiting on is the thing worth knowing, and a
+per-turn total cannot say. Nothing is measured on a real call; see
+`msat_flow/llm/timing.py`.
+
+The first two of those calls are put the same two things and neither reads the
+other's answer, so they go out **together** and the member waits for the longer
+rather than the sum. The guard still decides the turn by itself: every path it
+settles throws the reading away unlooked at. Only the spoken line waits for both,
+because what to say depends on what was heard.
+
 ---
 
 ### Serving the graph

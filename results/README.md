@@ -7,6 +7,7 @@ runs against a real provider; nothing is written when the live tests skip.
 results/live/2026-08-10T09-26-23Z/
     index.md                                  a row per test, appended live
     run.jsonl                                 one JSON object per test, appended
+    baseline.json                             the run's latency, by role
     test_full_calls/
         001__the_whole_call__complete_survey_high_risk.md
         001__the_whole_call__complete_survey_high_risk.json
@@ -84,12 +85,60 @@ to silence, not what the run added up to. Each transcript's header gives the
 column so a bad one can be spotted without opening anything:
 
 ```
-| # | | test | turns | slowest turn | transcript |
-| 4 | ✓ | ...[safeguarding_stops_the_survey_mid_call] | 6 | 2.41s | 004__....md |
+| # | | test | turns | slowest turn | guard | extract | generate | transcript |
+| 4 | ✓ | ...[safeguarding_stops_the_survey…] | 6 | 2.41s | 1.9s | 3.4s | 6.2s | 004__….md |
 ```
 
 The JSON keeps `at_s` alongside it — the offset into the test — so two runs of
 the same scenario can be lined up turn for turn.
+
+## And per call, by role
+
+A turn is up to three provider calls — the guard call, the extraction call, and
+the line the agent speaks — and a turn that took 2.4 seconds does not say which
+of them the member was waiting on. Each call is timed on its own and labelled
+with the role it played, so it does:
+
+```markdown
+**3. safeguarding_stops_the_survey** · 2.41s (1.90s waiting on 3 model calls, 2.28s of provider time)
+
+- calls: guard 0.38s · extract 0.71s · generate 1.19s — guard + extract ran together
+```
+
+### Waiting is not the same as provider time
+
+The guard call and the extraction call go out together, so a turn can spend more
+provider seconds than it lasts. The two numbers are kept apart everywhere:
+
+| | |
+|---|---|
+| **provider time** | every call's duration added up — what was spent |
+| **waiting** | the same calls with overlap counted once — what the member sat through |
+
+A role's *share of turn time* is against turn time, so on a turn where two calls
+overlap the shares can add up to more than the waiting did. That is the point of
+the note under the baseline table: removing a role saves what it did not share
+with another call, not its whole share.
+
+Every transcript opens with the same thing added up for that test, and `index.md`
+closes with it added up for the whole run — per-role p50, p95, slowest and total,
+plus each role's **share of turn time**:
+
+| role | calls | p50 | p95 | slowest | total | share of turn time |
+|---|---:|---:|---:|---:|---:|---:|
+| guard | 62 | 0.39s | 0.61s | 0.74s | 24.9s | 17% |
+
+The share is against the time the *turns* took, not against the time the calls
+took, so the three do not add up to 100% — what is left over is everything that
+is not the provider, and it is meant to be visible rather than divided up among
+the calls.
+
+`baseline.json` is the same numbers as data, for comparing two runs without
+parsing markdown, and each test's own totals are in `run.jsonl` under `timings`.
+
+A call that **failed** is timed too and marked, because a provider timeout is the
+slowest thing a turn can do and a table that dropped those would look its best
+exactly when the call went its worst.
 
 ## These are not committed
 

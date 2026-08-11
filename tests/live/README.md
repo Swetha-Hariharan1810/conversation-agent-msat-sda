@@ -73,6 +73,36 @@ tail -f results/live/latest/index.md
 The run directories are gitignored; `results/README.md` says how to keep one
 deliberately, and `MSAT_RESULTS_DIR` writes them elsewhere.
 
+## Every run also times each call
+
+A turn makes up to three provider calls — the guard call and the extraction call,
+which go out together, and then the line the agent speaks — and each is timed on
+its own under the role it played.
+That is what turns "this turn took 2.4 seconds" into something you can act on:
+which of the three the member was waiting on decides whether the answer is a
+smaller model, a shorter prompt, or one fewer call.
+
+The numbers land in three places: beside each turn in the transcript, per test in
+`index.md`'s role columns, and added up for the whole run in `index.md`'s
+**Latency baseline** — per-role p50, p95, slowest, total, and each role's share
+of turn time. The last line of the run repeats the headline:
+
+```
+conversations written to results/live/2026-08-10T09-26-23Z (see index.md)
+latency: guard p50 0.39s p95 0.61s (17%) · extract p50 0.68s p95 1.04s (29%) · generate p50 1.21s p95 2.10s (48%)
+```
+
+For a baseline worth quoting, run the two suites that make whole turns rather
+than single calls:
+
+```bash
+MSAT_LIVE_TESTS=1 uv run pytest tests/live/test_full_turns.py tests/live/test_full_calls.py -v
+```
+
+Nothing is measured unless a run is collecting — `msat_flow/llm/timing.py` records
+only inside a collector, and on a real call there is none. See `results/README.md`
+for how to read the tables.
+
 ## What is here
 
 | | |

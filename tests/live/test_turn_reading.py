@@ -57,6 +57,8 @@ async def test_the_turn_is_read_as_written(client, spec, transcript, row):
                     "expect_corrections",
                     "expect_declines",
                     "expect_identity_detail",
+                    "expect_event",
+                    "expect_nothing",
                 )
                 if key in row
             },
@@ -108,6 +110,24 @@ async def test_the_turn_is_read_as_written(client, spec, transcript, row):
                 expected=f"declines_question={row['expect_declines']}",
                 got=decision.declines_question,
                 **seen,
+            )
+
+        if "expect_event" in row:
+            # The label decides what the turn COSTS the member: a question back
+            # read as an unclear answer spends a retry and, three of those in,
+            # is reported as a question they would rather not answer.
+            assert decision.event_type.value == row["expect_event"], failure(
+                row,
+                expected=f"event_type={row['expect_event']}",
+                got=decision.event_type.value,
+                **seen,
+            )
+
+        if row.get("expect_nothing"):
+            # Raw values, not the settled ones: a turn that recorded something the
+            # validator then threw away still read the turn wrongly.
+            assert not decision.values, failure(
+                row, expected="nothing recorded at all", got=decision.values, **seen
             )
 
         if "expect_identity_detail" in row:

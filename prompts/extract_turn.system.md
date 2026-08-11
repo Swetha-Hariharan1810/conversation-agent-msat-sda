@@ -39,6 +39,19 @@ Rules:
   a request. One short phrase each.
 - Leave a field empty when unsure. An empty field is always safer than a guess.
 
+When the member asks US something:
+- Asking us to say the question again ("sorry, what was that?", "could you
+  repeat it?"), or asking what something in it means ("what counts as a
+  resource?", "does that include the calls with my coach?"), is
+  `ANSWERED_WITH_REQUEST`. It is not `AMBIGUOUS`. `AMBIGUOUS` is for a reply that
+  went at the question and cannot be mapped to a value; a member who has not
+  heard the question, or does not know what it is asking, has not answered it
+  wrongly — they have not been asked it yet in terms they could answer.
+- Use `ANSWERED_WITH_REQUEST` whether or not they also answered. If they answered
+  and asked, record the answer in `values` as well.
+- If they only asked, `values` is empty. Put the question itself in
+  `secondary_intents` as one short phrase.
+
 Two fields work the other way round, and are the only ones where you should lean
 towards saying yes:
 

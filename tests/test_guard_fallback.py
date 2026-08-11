@@ -23,12 +23,17 @@ GUARDS = scenarios("guards")
 
 
 class DeadProvider:
-    """Every call fails, the way a provider outage or an exhausted retry does."""
+    """Every call fails, the way a provider outage or an exhausted retry does.
 
-    async def structured(self, messages, schema):
+    ``role`` is accepted and ignored, as the client contract has it: a stub that
+    could not be told which of the turn's three calls it is standing in for would
+    not be standing in for the real one.
+    """
+
+    async def structured(self, messages, schema, *, role: str = ""):
         raise RuntimeError("provider unavailable")
 
-    async def text(self, messages):
+    async def text(self, messages, *, role: str = ""):
         raise RuntimeError("provider unavailable")
 
 

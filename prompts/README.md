@@ -30,7 +30,8 @@ so a JSON example pasted in here fails the test suite rather than the call.
 | `speak_line.values.md` | Values from the work item the turn may state (the member's name) |
 | `speak_line.context.md` | What the member just said |
 | `speak_line.acknowledge.md` | A one-line acknowledgement of something we cannot act on |
-| `speak_line.retry.md` | Ask again — the answer did not land |
+| `speak_line.retry.md` | Ask again — the answer did not land, and why |
+| `speak_line.attempt.md` | How many attempts this question has had. Only sent once one has been spent — a question the member asked us to repeat is put again without charging one |
 | `simulated_member.system.md` | The **member** in a graded run, not the agent |
 | `personas/*.md` | How that simulated member delivers their answers |
 

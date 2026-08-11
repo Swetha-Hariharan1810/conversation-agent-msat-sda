@@ -40,6 +40,8 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
+from msat_flow.llm import timing
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RESULTS_DIR = Path(os.getenv("MSAT_RESULTS_DIR") or REPO_ROOT / "results")
 
@@ -49,6 +51,11 @@ MEMBER = "Member"
 MARK = {"passed": "✓", "failed": "✗", "skipped": "–"}
 
 _UNSAFE = re.compile(r"[^A-Za-z0-9._-]+")
+
+# Below this, two calls are consecutive rather than concurrent. Five milliseconds
+# is orders of magnitude under any provider call and well over the gap between
+# one finishing and the next being dispatched.
+_TOUCHING = 0.005
 
 
 @dataclass
@@ -63,6 +70,28 @@ class Exchange:
     reply: str = ""
     took_s: float = 0.0  # this turn alone
     at_s: float = 0.0  # where it fell in the test, for lining two runs up
+    # Every provider call this turn made, in order, each labelled with the role
+    # it played and stamped with when it started:
+    # ``[{"role": "guard", "seconds": 0.41, "ok": true, "at": 0.0}, ...]``.
+    calls: list[dict] = field(default_factory=list)
+
+    @property
+    def timed_calls(self) -> list[timing.Call]:
+        return [_call(call) for call in self.calls]
+
+    @property
+    def calls_s(self) -> float:
+        """What the provider spent on this turn, overlap counted twice."""
+        return sum(call["seconds"] for call in self.calls)
+
+    @property
+    def waiting_s(self) -> float:
+        """What the member waited for it, overlap counted once.
+
+        Below ``calls_s`` whenever two calls ran together, and the gap between
+        the two is exactly what running them together bought.
+        """
+        return timing.busy_seconds(self.timed_calls)
 
 
 @dataclass
@@ -79,9 +108,58 @@ class Conversation:
     def failed(self) -> bool:
         return self.outcome == "failed"
 
+    @property
+    def calls(self) -> list[timing.Call]:
+        """Every provider call this conversation made, in order."""
+        return [_call(call) for exchange in self.exchanges for call in exchange.calls]
+
+    @property
+    def waiting_s(self) -> float:
+        """Time this test spent waiting on the provider, overlap counted once.
+
+        Summed per turn rather than over the test as a whole: two calls only
+        overlap within the turn that made them, and a test's turns are minutes
+        apart.
+        """
+        return sum(exchange.waiting_s for exchange in self.exchanges)
+
+
+def _call(data: dict) -> timing.Call:
+    return timing.Call(data["role"], data["seconds"], data.get("ok", True), data.get("at", 0.0))
+
 
 def _compact(data: dict) -> str:
     return json.dumps(data, ensure_ascii=False, default=str)
+
+
+def _overlapping(exchange: Exchange) -> str:
+    """The roles whose calls overlapped in time, as ``guard + extract``.
+
+    Written into the transcript rather than inferred from the numbers, because
+    "these two ran together" is the claim the concurrency makes and it should be
+    checkable by reading rather than by arithmetic.
+    """
+    calls = exchange.timed_calls
+    together: set[str] = set()
+    for position, first in enumerate(calls):
+        for second in calls[position + 1 :]:
+            # Strictly more than touching. One call handing straight over to the
+            # next puts them a scheduler tick apart, and at three decimal places
+            # that is indistinguishable from a genuine overlap — which would have
+            # the transcript claim two calls ran together when one waited for the
+            # other.
+            if min(first.until, second.until) - max(first.at, second.at) > _TOUCHING:
+                together.update((first.role, second.role))
+    order = [role for role in timing.ROLES if role in together]
+    return " + ".join(order + sorted(together - set(order)))
+
+
+def _roles(calls: list[timing.Call]) -> str:
+    """``guard 0.41s · extract 1.12s · generate 1.83s`` — one role per call kind."""
+    return " · ".join(
+        f"{role} {stats.total_s:.2f}s" + (f" ×{stats.count}" if stats.count > 1 else "")
+        for role, stats in timing.summarise(calls).items()
+    )
 
 
 def _parts(nodeid: str) -> tuple[str, str]:
@@ -154,8 +232,12 @@ class Recorder:
                     "Written as the run goes. A row appears here the moment its test finishes,",
                     "so an interrupted run still accounts for everything it got through.",
                     "",
-                    "| # | | test | turns | slowest turn | transcript |",
-                    "|---:|:-:|---|---:|---:|---|",
+                    "The three role columns are what that test spent in each of the provider",
+                    "calls a turn can make — the guard call, the extraction call, and the line",
+                    "the agent speaks. Per-role percentiles for the whole run are at the bottom.",
+                    "",
+                    "| # | | test | turns | slowest turn | guard | extract | generate | transcript |",
+                    "|---:|:-:|---|---:|---:|---:|---:|---:|---|",
                     "",
                 ]
             ),
@@ -193,10 +275,14 @@ class Recorder:
         # The slowest turn, not the total: what matters on a call is whether any
         # single turn left the member listening to silence.
         slowest = f"{max(timed):.2f}s" if timed else "—"
+        stats = timing.summarise(conversation.calls)
+        per_role = "".join(
+            f" {stats[role].total_s:.2f}s |" if role in stats else " — |" for role in timing.ROLES
+        )
         row = (
             f"| {conversation.index} | {MARK.get(conversation.outcome, '?')} "
             f"| `{conversation.test}` | {len(conversation.exchanges)} | {slowest} "
-            f"| [{relative.name}]({relative}) |\n"
+            f"|{per_role} [{relative.name}]({relative}) |\n"
         )
         with (self.directory / "index.md").open("a", encoding="utf-8") as handle:
             handle.write(row)
@@ -206,12 +292,19 @@ class Recorder:
             handle.write(json.dumps(self._record(conversation), ensure_ascii=False, default=str) + "\n")
 
     def _record(self, conversation: Conversation) -> dict:
+        calls = conversation.calls
         return {
             "test": conversation.test,
             "outcome": conversation.outcome,
             "index": conversation.index,
             "started": self.started.isoformat(),
             "context": self.context,
+            # Per-role totals for this test, so a baseline can be rebuilt from
+            # run.jsonl alone without re-reading every exchange.
+            "timings": {role: stats.as_dict() for role, stats in timing.summarise(calls).items()},
+            "turn_total_s": round(sum(turn.took_s for turn in conversation.exchanges), 3),
+            "calls_total_s": round(sum(call.seconds for call in calls), 3),
+            "waiting_s": round(conversation.waiting_s, 3),
             "exchanges": [asdict(exchange) for exchange in conversation.exchanges],
         }
 
@@ -225,6 +318,7 @@ class Recorder:
             "",
             f"{len(turns)} turns — **{conversation.outcome}**{self._timing(turns)}",
             "",
+            *self._role_lines(conversation),
             "---",
             "",
         ]
@@ -241,8 +335,53 @@ class Recorder:
         return f" · slowest turn {max(timed):.2f}s · whole call {sum(timed):.2f}s"
 
     @staticmethod
+    def _role_lines(conversation: Conversation) -> list[str]:
+        """Where this test's time went, by the role each provider call played.
+
+        The share is against the turn time rather than against the provider time,
+        so the three add up to less than 100% and what is left over — the
+        planner, the normalisers, the test's own driving — is visible as the gap
+        rather than being divided up among the calls.
+        """
+        calls = conversation.calls
+        if not calls:
+            return []
+        turn_total = sum(turn.took_s for turn in conversation.exchanges)
+        # Same columns, same order as the run's baseline at the foot of index.md,
+        # so one test can be read against the run without re-reading the header.
+        rows = [
+            "| role | calls | p50 | p95 | slowest | total | share of turn time |",
+            "|---|---:|---:|---:|---:|---:|---:|",
+        ]
+        for role, stats in timing.summarise(calls).items():
+            share = f"{stats.total_s / turn_total:.0%}" if turn_total else "—"
+            failed = f" ({stats.failures} failed)" if stats.failures else ""
+            rows.append(
+                f"| {role}{failed} | {stats.count} | {stats.p50_s:.2f}s | {stats.p95_s:.2f}s "
+                f"| {stats.slowest_s:.2f}s | {stats.total_s:.2f}s | {share} |"
+            )
+        provider_total = sum(call.seconds for call in calls)
+        if round(conversation.waiting_s, 2) < round(provider_total, 2):
+            rows += [
+                "",
+                f"{provider_total:.2f}s of provider time, {conversation.waiting_s:.2f}s of it "
+                f"waited for — the rest ran inside another call's wait.",
+            ]
+        return [*rows, ""]
+
+    @staticmethod
     def _exchange_lines(number: int, exchange: Exchange) -> list[str]:
         took = f" · {exchange.took_s:.2f}s" if exchange.took_s else ""
+        if exchange.calls:
+            # Waiting first: it is the part of the turn the member sat through.
+            # The provider total is beside it only when the two differ, which is
+            # exactly when calls ran together.
+            took += f" ({exchange.waiting_s:.2f}s waiting on {len(exchange.calls)} model calls"
+            took += (
+                f", {exchange.calls_s:.2f}s of provider time)"
+                if round(exchange.calls_s, 2) != round(exchange.waiting_s, 2)
+                else ")"
+            )
         lines = [f"**{number}. {exchange.scenario}**{took}", ""]
         if exchange.caller:
             lines += [f"> **{CALLER}** — {exchange.caller}", ">"]
@@ -253,13 +392,20 @@ class Recorder:
             lines += [f"- expected: `{_compact(exchange.expected)}`"]
         if exchange.decided:
             lines += [f"- decided: `{_compact(exchange.decided)}`"]
+        if exchange.calls:
+            spent = " · ".join(
+                f"{call['role']} {call['seconds']:.2f}s" + ("" if call.get("ok", True) else " (failed)")
+                for call in exchange.calls
+            )
+            together = _overlapping(exchange)
+            lines += [f"- calls: {spent}" + (f" — {together} ran together" if together else "")]
         lines += [""]
         return lines
 
     # ── the end ──────────────────────────────────────────────────────────
 
     def finish(self) -> Path | None:
-        """Close the index with a tally. Everything else is already on disk."""
+        """Close the index with a tally and the run's latency baseline."""
         if self._directory is None:
             return None
         written = [c for c in self.conversations.values() if c.path is not None]
@@ -271,6 +417,7 @@ class Recorder:
         lines = ["", "", f"**{len(written)} conversations** — " + ", ".join(
             f"{count} {name}" for name, count in sorted(tally.items())
         ) or "nothing ran", ""]
+        lines += self._baseline(written)
         if failed:
             lines += ["## Failures", "", "The transcripts worth reading first.", ""]
             lines += [
@@ -279,17 +426,127 @@ class Recorder:
             lines += [""]
         with (self._directory / "index.md").open("a", encoding="utf-8") as handle:
             handle.write("\n".join(lines))
+        self._write_baseline_json(written)
         return self._directory
+
+    # ── the baseline ─────────────────────────────────────────────────────
+    #
+    # The whole run's latency, by the role each provider call played. This is the
+    # number that decides what is worth optimising: a turn whose time is nearly
+    # all in `generate` is a different problem from one paying for three calls.
+
+    def _baseline(self, written: list[Conversation]) -> list[str]:
+        calls = [call for conversation in written for call in conversation.calls]
+        if not calls:
+            return []
+        stats = timing.summarise(calls)
+        turn_total = sum(
+            turn.took_s for conversation in written for turn in conversation.exchanges
+        )
+        turns = sum(len(conversation.exchanges) for conversation in written)
+
+        lines = [
+            "## Latency baseline",
+            "",
+            f"{len(calls)} provider calls across {turns} turns. "
+            f"p50 and p95 are per call; the share is that role's total against the "
+            f"{turn_total:.1f}s the turns took end to end, so what the three leave over is "
+            f"everything that is not the provider.",
+            "",
+            "Calls made together are counted once in *waiting* and separately in *total*, "
+            "so a role's share can exceed what removing it would save.",
+            "",
+            "| role | calls | p50 | p95 | slowest | total | share of turn time |",
+            "|---|---:|---:|---:|---:|---:|---:|",
+        ]
+        for role, role_stats in stats.items():
+            share = f"{role_stats.total_s / turn_total:.0%}" if turn_total else "—"
+            failed = f" ({role_stats.failures} failed)" if role_stats.failures else ""
+            lines.append(
+                f"| {role}{failed} | {role_stats.count} | {role_stats.p50_s:.2f}s "
+                f"| {role_stats.p95_s:.2f}s | {role_stats.slowest_s:.2f}s "
+                f"| {role_stats.total_s:.2f}s | {share} |"
+            )
+        provider_total = sum(call.seconds for call in calls)
+        provider_share = f"{provider_total / turn_total:.0%}" if turn_total else "—"
+        waiting = sum(conversation.waiting_s for conversation in written)
+        waiting_share = f"{waiting / turn_total:.0%}" if turn_total else "—"
+        lines += [
+            f"| **all calls** | {len(calls)} | | | | {provider_total:.2f}s | {provider_share} |",
+            f"| **waiting on them** | | | | | {waiting:.2f}s | {waiting_share} |",
+            "",
+            f"Mean turn: {turn_total / turns:.2f}s over {turns} turns.",
+        ]
+        if round(waiting, 2) < round(provider_total, 2):
+            lines += [
+                "",
+                f"{provider_total - waiting:.2f}s of provider time was spent inside another "
+                f"call's wait — that is what the concurrent calls saved, and it is the "
+                f"difference between the two rows above.",
+            ]
+        return [*lines, ""]
+
+    def headline(self) -> str:
+        """One line of the baseline, for the terminal at the end of a run."""
+        written = [c for c in self.conversations.values() if c.path is not None]
+        calls = [call for conversation in written for call in conversation.calls]
+        if not calls:
+            return ""
+        turn_total = sum(turn.took_s for conversation in written for turn in conversation.exchanges)
+        return " · ".join(
+            f"{role} p50 {stats.p50_s:.2f}s p95 {stats.p95_s:.2f}s"
+            + (f" ({stats.total_s / turn_total:.0%})" if turn_total else "")
+            for role, stats in timing.summarise(calls).items()
+        )
+
+    def _write_baseline_json(self, written: list[Conversation]) -> None:
+        """The same numbers as data, for comparing two runs without parsing markdown."""
+        calls = [call for conversation in written for call in conversation.calls]
+        if not calls:
+            return
+        turns = [turn for conversation in written for turn in conversation.exchanges]
+        turn_total = sum(turn.took_s for turn in turns)
+        (self._directory / "baseline.json").write_text(
+            json.dumps(
+                {
+                    "started": self.started.isoformat(),
+                    "context": self.context,
+                    "tests": len(written),
+                    "turns": len(turns),
+                    "turn_total_s": round(turn_total, 3),
+                    # Overlap counted once — what removing every call would save.
+                    "waiting_s": round(sum(c.waiting_s for c in written), 3),
+                    "turn_p50_s": round(timing.percentile([t.took_s for t in turns], 0.50), 3),
+                    "turn_p95_s": round(timing.percentile([t.took_s for t in turns], 0.95), 3),
+                    "calls": len(calls),
+                    "calls_total_s": round(sum(call.seconds for call in calls), 3),
+                    "roles": {
+                        role: {
+                            **stats.as_dict(),
+                            "share_of_turn_time": (
+                                round(stats.total_s / turn_total, 4) if turn_total else None
+                            ),
+                        }
+                        for role, stats in timing.summarise(calls).items()
+                    },
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
 
 
 class TestTranscript:
     """The handle a single test writes through."""
 
-    __slots__ = ("_conversation", "_t0", "_previous")
+    __slots__ = ("_conversation", "_t0", "_previous", "_timeline")
 
-    def __init__(self, conversation: Conversation) -> None:
+    def __init__(self, conversation: Conversation, timeline: timing.Timeline | None = None) -> None:
         self._conversation = conversation
         self._t0 = self._previous = time.monotonic()
+        # Provider calls are drained per exchange, so each turn carries the calls
+        # it made rather than the test carrying one undifferentiated pile.
+        self._timeline = timeline
 
     def exchange(
         self,
@@ -312,6 +569,11 @@ class TestTranscript:
 
         ``at_s`` keeps the offset into the test, so two runs of the same scenario
         can still be lined up turn for turn.
+
+        ``calls`` is every provider call made since the previous exchange, each
+        labelled with the role it played. That is what turns "this turn took 2.4
+        seconds" into something actionable: which of the turn's three calls the
+        member was actually waiting on.
         """
         now = time.monotonic()
         self._conversation.exchanges.append(
@@ -324,6 +586,7 @@ class TestTranscript:
                 reply=reply,
                 took_s=round(now - self._previous, 3),
                 at_s=round(now - self._t0, 3),
+                calls=[call.as_dict() for call in self._timeline.drain()] if self._timeline else [],
             )
         )
         self._previous = now
