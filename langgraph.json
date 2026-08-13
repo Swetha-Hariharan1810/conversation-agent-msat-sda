@@ -5,3 +5,9 @@
   "env": ".env",
   "image_distro": "wolfi"
 }
+
+
+Hey Swetha. I wouldn't consider it a different approach, I would expect to kick off 2 async calls simultaneously. The LLM call, and an extraction call. The extraction call would use GLiNER2. And I'm not working on it as Virtual Agent, I'm working on it for Agent Assist. But there's considerable overlap between AA and VA. Then we also have SensAI/CX360 which are doing something similar too. So I want to have a meeting next week sometime with you, Anup, Sabita, and Aditya to go over approaches.
+ 
+You would still possibly need the LLM, especially for classifying intents that a user may have asked about because the GLiNER model isn't really generative in the same way.
+ 
