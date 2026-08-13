@@ -1,13 +1,7 @@
-{
-  "dependencies": ["."],
-  "python_version": "3.13",
-  "graphs": {"msat": "msat_flow.app_graph:graph"},
-  "env": ".env",
-  "image_distro": "wolfi"
-}
 
-
-Hey Swetha. I wouldn't consider it a different approach, I would expect to kick off 2 async calls simultaneously. The LLM call, and an extraction call. The extraction call would use GLiNER2. And I'm not working on it as Virtual Agent, I'm working on it for Agent Assist. But there's considerable overlap between AA and VA. Then we also have SensAI/CX360 which are doing something similar too. So I want to have a meeting next week sometime with you, Anup, Sabita, and Aditya to go over approaches.
+The interface for it will probably be different. The sample code is the python API that they have but I'm putting together a different API to use onnx/openvino and directly taking a pydantic model in.
  
-You would still possibly need the LLM, especially for classifying intents that a user may have asked about because the GLiNER model isn't really generative in the same way.
+So what I have should be closer to a drop-in replacement for VA
+ 
+replacement isn't the right word, but I mean you should be able to reuse your exact schema as long as you use Field(...,description="...")
  
