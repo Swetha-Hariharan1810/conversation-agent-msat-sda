@@ -50,7 +50,7 @@
       "wrong_number": "I'm sorry to have troubled you. Have a good day.",
       "do_not_call": "Understood — I'll make sure you're not called about this again. Thank you for your time.",
       "unnamed_policyholder": "the policyholder",
-      "side_request_ack": "I'll note that and pass it on to the program team.",
+      "side_request_ack": "I'm not able to help with that on this call.",
       "unable_to_continue": "Thank you for the time you've given me. I'll close the survey here.",
 
       "hold_ack": {
@@ -293,7 +293,7 @@
     "sv.01b": {
       "slots": ["no_review_reason"],
       "when": { "answer": { "slot": "reviewed_resources", "equals": "no" } },
-      "goal": "Find out WHY they did not review the resources, and read out the four reasons. Do not ask how helpful the resources were — they have just said they did not see them.",
+      "goal": "Ask the member why they did not review the resources, then present the four reasons to choose from.",
       "speak_goal_not_text": true
     },
     "sv.02": {

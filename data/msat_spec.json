@@ -12,7 +12,7 @@
       "section": "Voicemail",
       "role": "agent",
       "kind": "voicemail",
-      "text": "Hello, this is the Sagility Smart Step Program offered by Allianz Life Insurance company . We are calling everyone who participated in the Smart Step program and would like to hear your feedback. Please call us back at 1-888-855-7837 between 8am and 8pm Eastern Time. You may also go online to take the survey at allianz.sagilitysmartsteps.com. That's a-l-l-i-a-n-z dot s-a-g-i-l-i-t-y-s-m-a-r-t-s-t-e-p-s dot com. Thank you.",
+      "text": "Hello, this is the Sagility Smart Step Program offered by Allianz Life Insurance company . We are calling everyone who participated in the Smart Step program and would like to hear your feedback. Please call us back at 1-888-855-7837 between 8am and 8pm Eastern Time. You may also go online to take the survey at allianz dot sagility smart steps dot com. That's a-l-l-i-a-n-z dot s-a-g-i-l-i-t-y-s-m-a-r-t-s-t-e-p-s dot com. Thank you.",
       "goal": "Leave the program's voicemail message and end the call."
     },
     {
@@ -142,7 +142,7 @@
         "This needs a decision from the business, and is the one place where the agent",
         "deliberately does not say what the document prints."
       ],
-      "goal": "Find out WHY they did not review the resources, and read out the four reasons. Do not ask how helpful the resources were \u2014 they have just said they did not see them.",
+      "goal": "Ask the member why they did not review the resources, then present the four reasons to choose from.",
       "slots": [
         "no_review_reason"
       ],
@@ -534,7 +534,7 @@
       "wrong_number": "I'm sorry to have troubled you. Have a good day.",
       "do_not_call": "Understood \u2014 I'll make sure you're not called about this again. Thank you for your time.",
       "unnamed_policyholder": "the policyholder",
-      "side_request_ack": "I'll note that and pass it on to the program team.",
+      "side_request_ack": "I'm not able to help with that on this call.",
       "unable_to_continue": "Thank you for the time you've given me. I'll close the survey here.",
       "hold_ack": {
         "_note": [
