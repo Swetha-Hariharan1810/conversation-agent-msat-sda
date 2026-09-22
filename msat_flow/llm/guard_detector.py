@@ -19,7 +19,9 @@ from . import prompts, timing
 from .schema import GuardAssessment
 
 
-def build_messages(*, last_agent_message: str = "", member_text: str) -> list[dict[str, str]]:
+def build_messages(
+    *, last_agent_message: str = "", member_text: str
+) -> list[dict[str, str]]:
     """The messages this turn would send. Separated out so tests can read them."""
     return [
         {"role": "system", "content": prompts.load("detect_guards.system")},
@@ -34,7 +36,9 @@ def build_messages(*, last_agent_message: str = "", member_text: str) -> list[di
     ]
 
 
-async def detect(client, *, last_agent_message: str = "", member_text: str) -> GuardAssessment:
+async def detect(
+    client, *, last_agent_message: str = "", member_text: str
+) -> GuardAssessment:
     """What the model makes of this turn.
 
     Raises whatever the provider raises. The caller decides what a failure means;

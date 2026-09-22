@@ -49,7 +49,9 @@ class IdentityDetail(StrEnum):
     """
 
     NONE = ""
-    UNAVAILABLE = "unavailable"  # right household, wrong person, or they cannot come to the phone
+    UNAVAILABLE = (
+        "unavailable"  # right household, wrong person, or they cannot come to the phone
+    )
     WRONG_NUMBER = "wrong_number"  # no such person here
 
 
@@ -74,7 +76,9 @@ class SecondaryIntentKind(StrEnum):
     """
 
     UNSPECIFIED = ""
-    MEMBER_SERVICES = "member_services"  # their policy, a claim, a bill — not this call's job
+    MEMBER_SERVICES = (
+        "member_services"  # their policy, a claim, a bill — not this call's job
+    )
     REQUEST = "request"  # they asked us to do something about the programme
     ABOUT_THE_SURVEY = "about_the_survey"  # a question about the question just put
     ASIDE = "aside"  # a remark that asks nothing of us
@@ -120,7 +124,8 @@ class GuardAssessment(BaseModel):
         ),
     )
     asks_for_representative: bool = Field(
-        default=False, description="true when they asked to be put through to a person, now"
+        default=False,
+        description="true when they asked to be put through to a person, now",
     )
     voicemail_greeting: bool = Field(
         default=False,
@@ -171,9 +176,10 @@ class TurnDecision(BaseModel):
         ),
     )
     corrections: dict[str, str] = Field(
-        default_factory=dict, description="slot name -> revised answer, when the member changed one"
+        default_factory=dict,
+        description="slot name -> revised answer, when the member changed one",
     )
-    secondary_intents: list[SecondaryIntent] = Field(
+    secondary_intents: list[SecondaryIntent | str] = Field(
         default_factory=list,
         description=(
             "anything else they raised in the same turn — a question for us, a request, a "
@@ -186,8 +192,31 @@ class TurnDecision(BaseModel):
         default=IdentityDetail.NONE,
         description="only when the policyholder was not reached: unavailable, or wrong_number",
     )
+    refuses_survey: bool = Field(
+        default=False,
+        description=(
+            "true when the member refuses to take the survey at all — not just the current "
+            "question. Examples: 'I don't want to take part of the survey', 'I'm not "
+            "interested in the survey', 'I won't answer any questions', 'don't bother me "
+            "with this survey'. Different from declines_question, which is about one "
+            "specific question."
+        ),
+    )
+    wants_reschedule: bool = Field(
+        default=False,
+        description=(
+            "true when the member explicitly asks to be called back at another time — "
+            "'I'm busy right now, can we reschedule?', 'call me back tomorrow', "
+            "'just reschedule this for later', 'I'll be free tomorrow at 2PM, call me then'. "
+            "Different from refuses_survey: the member is willing to take the survey, just "
+            "not right now. When true, also capture any specific time they mentioned in "
+            "reschedule_datetime. A 'no' or other word said while asking to reschedule is "
+            "NOT an answer to the current survey question — leave values empty."
+        ),
+    )
     declines_question: bool = Field(
-        default=False, description="true when the member would rather not answer what was just asked"
+        default=False,
+        description="true when the member would rather not answer what was just asked",
     )
     safeguarding_concern: bool = Field(
         default=False,
@@ -198,4 +227,28 @@ class TurnDecision(BaseModel):
     )
     asks_for_representative: bool = Field(
         default=False, description="true when they asked to be put through to a person"
+    )
+    off_topic: bool = Field(
+        default=False,
+        description=(
+            "true when the member's reply to a feedback_text slot has no connection to the "
+            "health program, aging-in-place care, or their experience with the service. "
+            "Off-topic: talking about a pet ('My cat sits on my lap'), food ('I had soup'), "
+            "neighbours, weather, household items — anything unrelated to the program. "
+            "NOT off-topic: any comment about the program, staff, resources, or 'none'/'no feedback'. "
+            "When true, leave `values` empty for that slot."
+        ),
+    )
+    requires_free_flow: bool = Field(
+        default=False,
+        description=(
+            "true when the agent's next response must be dynamically generated to handle what "
+            "the member raised — they asked a clarifying question, expressed confusion, gave an "
+            "ambiguous answer that needs explanation, or raised ANY secondary_intent regardless "
+            "of kind (member_services, request, about_the_survey, or aside). Even an off-topic "
+            "remark (weather, food, personal chit-chat) requires a brief acknowledgment before "
+            "the agent moves on, so free-flow is needed. "
+            "false only when the member answered, declined, or corrected with no secondary "
+            "intents at all — the script's reference wording is then sufficient."
+        ),
     )

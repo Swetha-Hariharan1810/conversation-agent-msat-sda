@@ -79,7 +79,10 @@ def _merge(state: dict, update: dict) -> dict:
     empty history every turn.
     """
     merged = {**state, **update}
-    merged["messages"] = [*(state.get("messages") or []), *(update.get("messages") or [])]
+    merged["messages"] = [
+        *(state.get("messages") or []),
+        *(update.get("messages") or []),
+    ]
     return merged
 
 
@@ -104,7 +107,10 @@ async def drive(client, spec, call: dict, transcript) -> tuple[dict, ScriptedMem
 
         if not update.get("is_interrupt"):
             transcript.exchange(
-                scenario=call["id"], caller=spoken, member="— call ended —", decided=_outcome(state)
+                scenario=call["id"],
+                caller=spoken,
+                member="— call ended —",
+                decided=_outcome(state),
             )
             return state, member
 
@@ -112,7 +118,9 @@ async def drive(client, spec, call: dict, transcript) -> tuple[dict, ScriptedMem
         said = member.reply_to(awaiting)
         if said is None:
             transcript.exchange(
-                scenario=call["id"], caller=spoken, member=f"— no reply scripted for {awaiting!r} —"
+                scenario=call["id"],
+                caller=spoken,
+                member=f"— no reply scripted for {awaiting!r} —",
             )
             pytest.fail(
                 f"{call['id']}: the agent asked for {awaiting!r}, which the script has no reply for.\n"
@@ -123,7 +131,9 @@ async def drive(client, spec, call: dict, transcript) -> tuple[dict, ScriptedMem
         transcript.exchange(scenario=call["id"], caller=spoken, member=said)
         state["messages"] = [*state["messages"], {"role": "user", "content": said}]
 
-    pytest.fail(f"{call['id']}: call did not end within {MAX_TURNS} turns; asked {member.asked}")
+    pytest.fail(
+        f"{call['id']}: call did not end within {MAX_TURNS} turns; asked {member.asked}"
+    )
 
 
 def _outcome(state: dict) -> dict:

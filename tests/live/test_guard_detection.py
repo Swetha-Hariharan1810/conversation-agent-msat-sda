@@ -35,7 +35,9 @@ async def test_model_judges_the_turn(client, transcript, row):
     expected = row["expect_model"]
     for attempt in range(1, repeats() + 1):
         assessment = await detect(
-            client, last_agent_message=row.get("last_agent", ""), member_text=row["member"]
+            client,
+            last_agent_message=row.get("last_agent", ""),
+            member_text=row["member"],
         )
         got = resolve(assessment)
         flags = sorted(name for name, on in assessment.model_dump().items() if on)
@@ -53,7 +55,10 @@ async def test_model_judges_the_turn(client, transcript, row):
         )
         for field, value in (row.get("expect_flags") or {}).items():
             assert getattr(assessment, field) is value, failure(
-                row, expected=f"{field}={value}", got=f"flags {flags or 'none set'}", attempt=attempt
+                row,
+                expected=f"{field}={value}",
+                got=f"flags {flags or 'none set'}",
+                attempt=attempt,
             )
 
 

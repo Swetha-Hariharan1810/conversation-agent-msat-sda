@@ -51,7 +51,11 @@ def failure(row: dict, *, expected, got, **detail) -> str:
     lines += [f"  {key:9}: {value}" for key, value in detail.items()]
     why = describe(row)
     if why:
-        lines += ["", "  why this scenario exists:", *(f"    {line}" for line in why.splitlines())]
+        lines += [
+            "",
+            "  why this scenario exists:",
+            *(f"    {line}" for line in why.splitlines()),
+        ]
     return "\n".join(lines)
 
 

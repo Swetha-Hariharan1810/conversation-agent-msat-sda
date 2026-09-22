@@ -35,7 +35,12 @@ import pytest
 
 from msat_flow.agents.survey_agent import MsatSurveyAgent
 from msat_flow.core.pending_intents import IntentKind, IntentStatus, PendingIntent
-from msat_flow.llm.schema import EventType, SecondaryIntent, SecondaryIntentKind, TurnDecision
+from msat_flow.llm.schema import (
+    EventType,
+    SecondaryIntent,
+    SecondaryIntentKind,
+    TurnDecision,
+)
 from msat_flow.planner import Action, Plan
 from msat_flow.script.spec import load_spec
 
@@ -53,11 +58,15 @@ def agent(spec) -> MsatSurveyAgent:
 
 
 def _plan(action: Action = Action.ASK) -> Plan:
-    return Plan(action=action, goal="ask whether they reviewed the resources", slots=(SLOT,))
+    return Plan(
+        action=action, goal="ask whether they reviewed the resources", slots=(SLOT,)
+    )
 
 
 def _answered(**overrides) -> TurnDecision:
-    decision = TurnDecision(values={"would_recommend": "yes"}, event_type=EventType.ANSWERED)
+    decision = TurnDecision(
+        values={"would_recommend": "yes"}, event_type=EventType.ANSWERED
+    )
     for name, value in overrides.items():
         setattr(decision, name, value)
     return decision
@@ -90,7 +99,13 @@ def test_a_question_no_one_has_counted_yet(agent):
 
 
 @pytest.mark.parametrize(
-    "action", [Action.GREET, Action.ASK_CONSENT, Action.OFFER_RESCHEDULE, Action.ASK_RESCHEDULE_DATETIME]
+    "action",
+    [
+        Action.GREET,
+        Action.ASK_CONSENT,
+        Action.OFFER_RESCHEDULE,
+        Action.ASK_RESCHEDULE_DATETIME,
+    ],
 )
 def test_every_action_that_puts_a_question(agent, action):
     assert _ask(agent, plan=_plan(action)) is True
@@ -101,7 +116,12 @@ def test_every_action_that_puts_a_question(agent, action):
 
 @pytest.mark.parametrize(
     "action",
-    [Action.ACKNOWLEDGE_HOLD, Action.CLOSE, Action.LEAVE_VOICEMAIL, Action.HANDOFF_SAFEGUARDING],
+    [
+        Action.ACKNOWLEDGE_HOLD,
+        Action.CLOSE,
+        Action.LEAVE_VOICEMAIL,
+        Action.HANDOFF_SAFEGUARDING,
+    ],
 )
 def test_an_action_that_asks_nothing(agent, action):
     """Only a question can be a fixed question. A pause especially: "take your
@@ -140,7 +160,9 @@ def test_a_turn_that_was_not_a_plain_answer(agent, event):
 def test_a_turn_that_corrected_an_earlier_answer(agent):
     """They went back to fix something. Asking the next question as though they
     had not is the rudest thing on the call."""
-    assert _ask(agent, decision=_answered(corrections={"would_recommend": "no"})) is False
+    assert (
+        _ask(agent, decision=_answered(corrections={"would_recommend": "no"})) is False
+    )
 
 
 def test_a_turn_that_raised_something_alongside_the_answer(agent):
@@ -152,7 +174,9 @@ def test_a_turn_that_raised_something_alongside_the_answer(agent):
     """
     decision = _answered(
         secondary_intents=[
-            SecondaryIntent(text="can you send me a paper copy?", kind=SecondaryIntentKind.REQUEST)
+            SecondaryIntent(
+                text="can you send me a paper copy?", kind=SecondaryIntentKind.REQUEST
+            )
         ]
     )
     agent.capture_and_triage(decision)
@@ -173,7 +197,9 @@ def test_something_an_earlier_turn_raised_and_never_got_a_line(agent):
     is waiting to be spoken and the line has to carry it.
     """
     agent._pending_intents = [
-        PendingIntent(kind=IntentKind.UNSUPPORTED.value, raw_text="when is my premium due?").to_dict()
+        PendingIntent(
+            kind=IntentKind.UNSUPPORTED.value, raw_text="when is my premium due?"
+        ).to_dict()
     ]
     assert _ask(agent) is False
 
@@ -198,7 +224,9 @@ def test_a_correction_on_the_ledger_does_not_by_itself_block_a_plain_ask(agent):
     """
     agent._pending_intents = [
         PendingIntent(
-            kind=IntentKind.CORRECTION.value, raw_text="correct would_recommend", target="would_recommend"
+            kind=IntentKind.CORRECTION.value,
+            raw_text="correct would_recommend",
+            target="would_recommend",
         ).to_dict()
     ]
     assert _ask(agent) is True
@@ -220,7 +248,9 @@ def test_the_predicate_never_marks_an_intent_acknowledged(agent):
     a turn where the agent said nothing about it — and the line that was owed
     would never be said, because the ledger no longer thinks it is owed.
     """
-    owed = PendingIntent(kind=IntentKind.UNSUPPORTED.value, raw_text="when is my premium due?").to_dict()
+    owed = PendingIntent(
+        kind=IntentKind.UNSUPPORTED.value, raw_text="when is my premium due?"
+    ).to_dict()
     agent._pending_intents = [owed]
 
     for _ in range(3):
@@ -237,4 +267,8 @@ def test_the_predicate_touches_nothing_else_either(agent):
     assert _ask(agent) is True
     assert _ask(agent, decision=_answered(event_type=EventType.AMBIGUOUS)) is False
 
-    assert (dict(agent._answers), agent.slots_dict(), list(agent._pending_intents)) == before
+    assert (
+        dict(agent._answers),
+        agent.slots_dict(),
+        list(agent._pending_intents),
+    ) == before

@@ -20,10 +20,13 @@ order they are assembled.
 
 from __future__ import annotations
 
+import logging
 import re
 
 from ..planner import Action, Plan
 from . import prompts, timing
+
+log = logging.getLogger(__name__)
 
 # The document writes the policyholder's name as "[policyholder's full name]".
 # Whatever else happens, that must never be said out loud.
@@ -47,7 +50,9 @@ def fill_placeholders(text: str, values: dict[str, str]) -> str:
     name — so an unfilled bracket cannot reach the member.
     """
     supplied = list(values.values())
-    return _PLACEHOLDER.sub(lambda _: supplied.pop(0) if supplied else "", text).replace("  ", " ")
+    return _PLACEHOLDER.sub(
+        lambda _: supplied.pop(0) if supplied else "", text
+    ).replace("  ", " ")
 
 
 def fallback(plan: Plan, ack: str = "") -> str:
@@ -72,20 +77,30 @@ def build_messages(
     retry_reason: str = "",
     attempt: int = 0,
     attempt_limit: int = 3,
+    progress_summary: str = "",
 ) -> list[dict[str, str]]:
     """The messages this turn would send. Separated out so tests can read them."""
     values = {slot.replace("_", " "): value for slot, value in plan.values.items()}
     sections = _sections(
-        prompts.render("speak_line.preamble", text=plan.preamble) if plan.preamble else "",
+        prompts.render("speak_line.preamble", text=plan.preamble)
+        if plan.preamble
+        else "",
         prompts.render("speak_line.reference", text=plan.text) if plan.text else "",
-        prompts.render("speak_line.options", options=_bullets(plan.options)) if plan.options else "",
+        prompts.render("speak_line.options", options=_bullets(plan.options))
+        if plan.options
+        else "",
         prompts.render(
             "speak_line.values",
             values=_bullets([f"{name}: {value}" for name, value in values.items()]),
         )
         if values
         else "",
-        prompts.render("speak_line.context", member=last_member_message) if last_member_message else "",
+        prompts.render("speak_line.progress", progress=progress_summary)
+        if progress_summary
+        else "",
+        prompts.render("speak_line.context", member=last_member_message)
+        if last_member_message
+        else "",
         prompts.render(
             "speak_line.retry",
             slot=retry_slot.replace("_", " "),
@@ -106,7 +121,9 @@ def build_messages(
         {"role": "system", "content": prompts.load("speak_line.system")},
         {
             "role": "user",
-            "content": prompts.render("speak_line.user", goal=plan.goal or plan.text, sections=sections),
+            "content": prompts.render(
+                "speak_line.user", goal=plan.goal or plan.text, sections=sections
+            ),
         },
     ]
 
@@ -121,12 +138,16 @@ async def generate(
     retry_reason: str = "",
     attempt: int = 0,
     attempt_limit: int = 3,
+    progress_summary: str = "",
+    free_flow: bool = True,
 ) -> str:
     """Produce the agent's line for ``plan``."""
     if plan.verbatim:
         # Approved wording, said exactly. A preamble still leads it in.
         return " ".join(part for part in (plan.preamble, plan.text) if part).strip()
-    if client is None:
+    # When there is no reference text the fallback would emit the goal instruction
+    # verbatim, which is never something to say aloud — always call the model.
+    if client is None or (not free_flow and plan.text):
         return fallback(plan, ack)
 
     messages = build_messages(
@@ -137,10 +158,12 @@ async def generate(
         retry_reason=retry_reason,
         attempt=attempt,
         attempt_limit=attempt_limit,
+        progress_summary=progress_summary,
     )
     try:
         spoken = await client.text(messages, role=timing.GENERATE)
-    except Exception:  # pragma: no cover - provider failure must not drop the call
+    except Exception as exc:  # noqa: BLE001  # pragma: no cover - provider failure must not drop the call
+        log.warning("generate call failed, using fallback: %s", exc)
         return fallback(plan, ack)
     return spoken or fallback(plan, ack)
 

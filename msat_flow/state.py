@@ -7,6 +7,7 @@ survey-specific fields sit alongside the shared ones rather than replacing them.
 
 from __future__ import annotations
 
+import operator
 from typing import Annotated, Any, Literal
 
 from langgraph.graph.message import add_messages
@@ -27,6 +28,9 @@ Disposition = Literal[
     # Both stop the survey where it stands and hand the call over; the second is
     # the one a human must look at today rather than in next month's report.
     "representative_requested",
+    # The agent escalated because the member exceeded the hold budget; the member
+    # did not explicitly ask for a representative.
+    "hold_limit_transfer",
     "safeguarding_handoff",
     "voicemail_left",
     "policyholder_unavailable",
@@ -45,7 +49,7 @@ class SlotState(TypedDict, total=False):
 class SurveyState(TypedDict, total=False):
     # ── shared RCM contract ──────────────────────────────────────────────
     messages: Annotated[list, add_messages]
-    metadata_events: list[dict]
+    metadata_events: Annotated[list[dict], operator.add]
     is_interrupt: bool
     next_node: str
     app_run_id: str
@@ -90,7 +94,9 @@ class SurveyState(TypedDict, total=False):
     offline: bool  # run with no model: script wording verbatim, no extraction
 
 
-def initial_state(input_data: dict[str, Any] | None = None, *, app_run_id: str = "") -> SurveyState:
+def initial_state(
+    input_data: dict[str, Any] | None = None, *, app_run_id: str = ""
+) -> SurveyState:
     """A fresh call state. Only explicitly supplied payload values are seeded."""
     return SurveyState(
         messages=[],
@@ -100,7 +106,9 @@ def initial_state(input_data: dict[str, Any] | None = None, *, app_run_id: str =
         app_run_id=app_run_id,
         active_agent="msat_survey_agent",
         last_agent_signal={},
-        workflow_subtype=str((input_data or {}).get("workflow_subtype") or "MEMBER_SATISFACTION_SURVEY"),
+        workflow_subtype=str(
+            (input_data or {}).get("workflow_subtype") or "MEMBER_SATISFACTION_SURVEY"
+        ),
         input_data=dict(input_data or {}),
         output_data={},
         phase="opening",

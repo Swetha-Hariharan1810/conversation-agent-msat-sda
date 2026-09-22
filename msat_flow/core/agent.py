@@ -17,7 +17,9 @@ from .signals import SignalsMixin
 from .slot_manager import SlotManagerMixin
 
 
-class BaseAgent(ConversationGuardsMixin, SlotManagerMixin, SignalsMixin, DialogueManagerMixin, ABC):
+class BaseAgent(
+    ConversationGuardsMixin, SlotManagerMixin, SignalsMixin, DialogueManagerMixin, ABC
+):
     """Abstract base for survey agents."""
 
     AGENT_NAME: str = "base_agent"

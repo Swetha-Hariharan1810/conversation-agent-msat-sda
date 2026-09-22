@@ -24,11 +24,13 @@ beats, because that order is the call rather than the questionnaire.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Callable
 
 from .core.guards import HOLD as GUARD_HOLD
+from .core.guards import HOLD_EXHAUSTED as GUARD_HOLD_EXHAUSTED
+from .core.guards import MEMBER_CLOSING as GUARD_MEMBER_CLOSING
 from .core.guards import REPRESENTATIVE_REQUEST as GUARD_REPRESENTATIVE
 from .core.guards import SAFEGUARDING as GUARD_SAFEGUARDING
 from .core.guards import VOICEMAIL as GUARD_VOICEMAIL
@@ -38,6 +40,7 @@ from .script.spec import SurveySpec, Turn
 class Action(StrEnum):
     HANDOFF_SAFEGUARDING = "handoff_safeguarding"
     HANDOFF_REPRESENTATIVE = "handoff_representative"
+    HANDOFF_HOLD_LIMIT = "handoff_hold_limit"
     LEAVE_VOICEMAIL = "leave_voicemail"
     ACKNOWLEDGE_HOLD = "acknowledge_hold"
     END_UNAVAILABLE = "end_unavailable"
@@ -55,13 +58,20 @@ class Action(StrEnum):
 
 # Actions that leave a question hanging, so ``awaiting_slot`` must point at it.
 QUESTION_ACTIONS = frozenset(
-    {Action.GREET, Action.ASK_CONSENT, Action.OFFER_RESCHEDULE, Action.ASK_RESCHEDULE_DATETIME, Action.ASK}
+    {
+        Action.GREET,
+        Action.ASK_CONSENT,
+        Action.OFFER_RESCHEDULE,
+        Action.ASK_RESCHEDULE_DATETIME,
+        Action.ASK,
+    }
 )
 # Actions that end the call the moment they are spoken.
 FINAL_ACTIONS = frozenset(
     {
         Action.HANDOFF_SAFEGUARDING,
         Action.HANDOFF_REPRESENTATIVE,
+        Action.HANDOFF_HOLD_LIMIT,
         Action.LEAVE_VOICEMAIL,
         Action.END_UNAVAILABLE,
         Action.END_WRONG_NUMBER,
@@ -73,7 +83,12 @@ FINAL_ACTIONS = frozenset(
 )
 # Actions that hand the call to a human rather than ending it.
 TRANSFER_ACTIONS = frozenset(
-    {Action.HANDOFF_SAFEGUARDING, Action.HANDOFF_REPRESENTATIVE, Action.TRANSFER_RESCHEDULE}
+    {
+        Action.HANDOFF_SAFEGUARDING,
+        Action.HANDOFF_REPRESENTATIVE,
+        Action.HANDOFF_HOLD_LIMIT,
+        Action.TRANSFER_RESCHEDULE,
+    }
 )
 # Actions that say something without asking anything, so the question already
 # outstanding stays outstanding. Acknowledging a pause must not lose the
@@ -152,19 +167,27 @@ def _off_script(spec: SurveySpec, action: Action, name: str) -> Plan:
     ``SpokenLine``. Nothing about *what happens to the member* is paraphrased.
     """
     spoken = spec.policy.spoken(name)
-    return Plan(action=action, goal=spoken.goal, text=spoken.line, verbatim=spoken.verbatim)
+    return Plan(
+        action=action, goal=spoken.goal, text=spoken.line, verbatim=spoken.verbatim
+    )
 
 
-def applies(turn: Turn, *, answers: dict[str, str], payload_lookup: Callable[[str], str]) -> bool:
+def applies(
+    turn: Turn, *, answers: dict[str, str], payload_lookup: Callable[[str], str]
+) -> bool:
     """Whether this member should be asked ``turn`` at all."""
-    return turn.when is None or turn.when.holds(answers=answers, payload_lookup=payload_lookup)
+    return turn.when is None or turn.when.holds(
+        answers=answers, payload_lookup=payload_lookup
+    )
 
 
 def applicable_questions(
     spec: SurveySpec, *, answers: dict[str, str], payload_lookup: Callable[[str], str]
 ) -> tuple[Turn, ...]:
     return tuple(
-        turn for turn in spec.questions if applies(turn, answers=answers, payload_lookup=payload_lookup)
+        turn
+        for turn in spec.questions
+        if applies(turn, answers=answers, payload_lookup=payload_lookup)
     )
 
 
@@ -180,7 +203,8 @@ def skipped_questions(
     return tuple(
         Skipped(slot=turn.slot, node=turn.node, reason=turn.when.describe())
         for turn in spec.questions
-        if turn.when is not None and not applies(turn, answers=answers, payload_lookup=payload_lookup)
+        if turn.when is not None
+        and not applies(turn, answers=answers, payload_lookup=payload_lookup)
     )
 
 
@@ -195,7 +219,9 @@ def outstanding_questions(
     settled = set(declined or ())
     return [
         turn.slot
-        for turn in applicable_questions(spec, answers=answers, payload_lookup=payload_lookup)
+        for turn in applicable_questions(
+            spec, answers=answers, payload_lookup=payload_lookup
+        )
         if turn.slot and not answers.get(turn.slot) and turn.slot not in settled
     ]
 
@@ -225,16 +251,28 @@ def plan_next(
     if guard == GUARD_SAFEGUARDING:
         return _off_script(spec, Action.HANDOFF_SAFEGUARDING, "safeguarding_handoff")
     if guard == GUARD_REPRESENTATIVE:
-        return _off_script(spec, Action.HANDOFF_REPRESENTATIVE, "representative_handoff")
+        return _off_script(
+            spec, Action.HANDOFF_REPRESENTATIVE, "representative_handoff"
+        )
+    if guard == GUARD_HOLD_EXHAUSTED:
+        return _off_script(spec, Action.HANDOFF_HOLD_LIMIT, "representative_handoff")
 
     # 1. An answering machine. Leave the message the document wrote for it and
     #    stop; there is nobody to ask anything of.
     if guard == GUARD_VOICEMAIL:
-        return _turn_plan(Action.LEAVE_VOICEMAIL, spec.of_kind("voicemail"), verbatim=True)
+        return _turn_plan(
+            Action.LEAVE_VOICEMAIL, spec.of_kind("voicemail"), verbatim=True
+        )
 
     # 2. They need a moment. Say so and wait — the question stays outstanding.
     if guard == GUARD_HOLD:
         return _off_script(spec, Action.ACKNOWLEDGE_HOLD, "hold_ack")
+
+    # 2b. Member asked to end the survey mid-call. Close immediately.
+    if guard == GUARD_MEMBER_CLOSING:
+        return _turn_plan(
+            Action.END_UNINTERESTED, spec.of_kind("uninterested_close"), verbatim=True
+        )
 
     # 3. Whoever answered, it is not the policyholder and will not be today.
     #    The document does not cover this, so the wording is declared off-script.
@@ -255,7 +293,10 @@ def plan_next(
         return _turn_plan(
             Action.GREET,
             greeting,
-            values={slot: payload_lookup(slot) or stand_in for slot in greeting.payload_slots},
+            values={
+                slot: payload_lookup(slot) or stand_in
+                for slot in greeting.payload_slots
+            },
         )
 
     # 4-5. Consent, and the reschedule branch the document draws behind it.
@@ -263,7 +304,9 @@ def plan_next(
         if consent != CONSENT_DECLINED:
             return _turn_plan(Action.ASK_CONSENT, spec.of_kind("consent"))
         if not reschedule:
-            return _turn_plan(Action.OFFER_RESCHEDULE, spec.of_kind("reschedule_offer"), verbatim=True)
+            return _turn_plan(
+                Action.OFFER_RESCHEDULE, spec.of_kind("reschedule_offer"), verbatim=True
+            )
         if reschedule == "yes":
             if not reschedule_datetime:
                 spoken = spec.policy.spoken("reschedule_datetime_ask")
@@ -274,8 +317,12 @@ def plan_next(
                     verbatim=spoken.verbatim,
                     slots=("reschedule_datetime",),
                 )
-            return _off_script(spec, Action.CLOSE_RESCHEDULE, "reschedule_datetime_confirm")
-        return _turn_plan(Action.END_UNINTERESTED, spec.of_kind("uninterested_close"), verbatim=True)
+            return _off_script(
+                spec, Action.CLOSE_RESCHEDULE, "reschedule_datetime_confirm"
+            )
+        return _turn_plan(
+            Action.END_UNINTERESTED, spec.of_kind("uninterested_close"), verbatim=True
+        )
 
     # 6-7. The next question that applies to this member and is still open.
     #      Order is the document's; applicability is the condition's. A question
@@ -288,7 +335,9 @@ def plan_next(
     #      statement, and the member waiting for a question that never came.
     preamble = None if survey_started else spec.of_kind("survey_intro")
     settled = set(declined or ())
-    for turn in applicable_questions(spec, answers=answers, payload_lookup=payload_lookup):
+    for turn in applicable_questions(
+        spec, answers=answers, payload_lookup=payload_lookup
+    ):
         if not turn.slots:
             continue
         if all(answers.get(slot) or slot in settled for slot in turn.slots):
@@ -296,4 +345,6 @@ def plan_next(
         return _turn_plan(Action.ASK, turn, preamble=preamble)
 
     # 8. Done.
-    return _turn_plan(Action.CLOSE, spec.of_kind("close"), verbatim=True, preamble=preamble)
+    return _turn_plan(
+        Action.CLOSE, spec.of_kind("close"), verbatim=True, preamble=preamble
+    )

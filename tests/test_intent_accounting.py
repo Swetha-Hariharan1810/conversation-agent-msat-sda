@@ -46,7 +46,11 @@ SLOT = "reviewed_resources"
 PAYLOAD = {
     "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
     "call_context": {"call_id": "accounting-test", "language": "en-US"},
-    "policyholder": {"first_name": "Margaret", "last_name": "Ellison", "risk_tier": "high"},
+    "policyholder": {
+        "first_name": "Margaret",
+        "last_name": "Ellison",
+        "risk_tier": "high",
+    },
 }
 
 
@@ -55,11 +59,16 @@ def spec():
     return load_spec()
 
 
-def _state(*, awaiting: str = SLOT, member: str = "What counts as a resource, exactly?") -> dict:
+def _state(
+    *, awaiting: str = SLOT, member: str = "What counts as a resource, exactly?"
+) -> dict:
     return {
         **initial_state(PAYLOAD),
         "messages": [
-            {"role": "assistant", "content": "Were you able to review any of the program resources?"},
+            {
+                "role": "assistant",
+                "content": "Were you able to review any of the program resources?",
+            },
             {"role": "user", "content": member},
         ],
         "identity": "confirmed",
@@ -75,13 +84,19 @@ def _raised(text: str, kind: SecondaryIntentKind) -> SecondaryIntent:
 
 async def _turn(spec, decision: TurnDecision, state: dict | None = None):
     """One turn through the real agent, with the extractor scripted."""
-    chat = Chat(delays={role: 0.0 for role in timing.ROLES}, guard=GuardAssessment(), decision=decision)
+    chat = Chat(
+        delays=dict.fromkeys(timing.ROLES, 0.0),
+        guard=GuardAssessment(),
+        decision=decision,
+    )
     agent = MsatSurveyAgent(client=provider(chat), spec=spec)
     result = await agent.run(state if state is not None else _state())
     return agent, result, chat
 
 
-async def _resumed(spec, state: dict, decision: TurnDecision, guard: GuardAssessment | None = None):
+async def _resumed(
+    spec, state: dict, decision: TurnDecision, guard: GuardAssessment | None = None
+):
     """A later turn of the same call, rebuilt from state the way the graph does.
 
     ``app_graph`` builds the agent with ``from_state`` every turn, so the ledger
@@ -89,7 +104,7 @@ async def _resumed(spec, state: dict, decision: TurnDecision, guard: GuardAssess
     therefore asserted about state that went through a checkpoint.
     """
     chat = Chat(
-        delays={role: 0.0 for role in timing.ROLES},
+        delays=dict.fromkeys(timing.ROLES, 0.0),
         guard=guard if guard is not None else GuardAssessment(),
         decision=decision,
     )
@@ -104,7 +119,11 @@ def _ledger(agent: MsatSurveyAgent) -> list[tuple[str, str]]:
 
 
 def _still_open(result: dict) -> list[dict]:
-    return [intent for intent in result["pending_intents"] if intent["status"] == IntentStatus.OPEN.value]
+    return [
+        intent
+        for intent in result["pending_intents"]
+        if intent["status"] == IntentStatus.OPEN.value
+    ]
 
 
 # ── a question about the question ────────────────────────────────────────
@@ -117,13 +136,21 @@ async def test_the_question_going_out_again_closes_it(spec):
         spec,
         TurnDecision(
             event_type=EventType.ANSWERED_WITH_REQUEST,
-            secondary_intents=[_raised("what counts as a resource", SecondaryIntentKind.ABOUT_THE_SURVEY)],
+            secondary_intents=[
+                _raised(
+                    "what counts as a resource", SecondaryIntentKind.ABOUT_THE_SURVEY
+                )
+            ],
         ),
     )
 
     assert result.get("awaiting_slot") == SLOT, "the question was not put again"
-    assert _ledger(agent) == [(IntentKind.CLARIFICATION.value, IntentStatus.RESOLVED.value)]
-    assert not _still_open(result), "a question answered on the same turn was reported as outstanding"
+    assert _ledger(agent) == [
+        (IntentKind.CLARIFICATION.value, IntentStatus.RESOLVED.value)
+    ]
+    assert not _still_open(result), (
+        "a question answered on the same turn was reported as outstanding"
+    )
 
 
 async def test_asking_to_hear_it_again_is_the_same_thing(spec):
@@ -132,14 +159,19 @@ async def test_asking_to_hear_it_again_is_the_same_thing(spec):
         TurnDecision(
             event_type=EventType.ANSWERED_WITH_REQUEST,
             secondary_intents=[
-                _raised("asked us to repeat the question", SecondaryIntentKind.ABOUT_THE_SURVEY)
+                _raised(
+                    "asked us to repeat the question",
+                    SecondaryIntentKind.ABOUT_THE_SURVEY,
+                )
             ],
         ),
         _state(member="Sorry, could you say that again?"),
     )
 
     assert not _still_open(result)
-    assert agent.slot(SLOT).attempt_count == 0, "closing the request charged the member for it"
+    assert agent.slot(SLOT).attempt_count == 0, (
+        "closing the request charged the member for it"
+    )
 
 
 async def test_three_of_them_do_not_pile_up(spec):
@@ -150,12 +182,22 @@ async def test_three_of_them_do_not_pile_up(spec):
         decision = TurnDecision(
             event_type=EventType.ANSWERED_WITH_REQUEST,
             secondary_intents=[
-                _raised("asked us to repeat the question", SecondaryIntentKind.ABOUT_THE_SURVEY)
+                _raised(
+                    "asked us to repeat the question",
+                    SecondaryIntentKind.ABOUT_THE_SURVEY,
+                )
             ],
         )
         agent, update, _ = await _turn(spec, decision, state)
-        state = {**state, **update, "messages": [*state["messages"], *(update.get("messages") or [])]}
-        state["messages"] = [*state["messages"], {"role": "user", "content": "Sorry, again?"}]
+        state = {
+            **state,
+            **update,
+            "messages": [*state["messages"], *(update.get("messages") or [])],
+        }
+        state["messages"] = [
+            *state["messages"],
+            {"role": "user", "content": "Sorry, again?"},
+        ]
 
     assert not _still_open(state)
     assert {status for _, status in _ledger(agent)} == {IntentStatus.RESOLVED.value}
@@ -174,7 +216,10 @@ async def test_one_asked_alongside_an_answer_stays_open(spec):
             event_type=EventType.ANSWERED_WITH_REQUEST,
             values={SLOT: "yes"},
             secondary_intents=[
-                _raised("does that include the calls with my coach", SecondaryIntentKind.ABOUT_THE_SURVEY)
+                _raised(
+                    "does that include the calls with my coach",
+                    SecondaryIntentKind.ABOUT_THE_SURVEY,
+                )
             ],
         ),
     )
@@ -192,13 +237,17 @@ async def test_an_aside_is_kept_and_owed_nothing(spec):
         spec,
         TurnDecision(
             values={SLOT: "yes"},
-            secondary_intents=[_raised("her daughter has just arrived", SecondaryIntentKind.ASIDE)],
+            secondary_intents=[
+                _raised("her daughter has just arrived", SecondaryIntentKind.ASIDE)
+            ],
         ),
     )
 
     assert _ledger(agent) == [(IntentKind.OFF_TOPIC.value, IntentStatus.NOTED.value)]
     assert agent._pending_intents[0]["raw_text"] == "her daughter has just arrived"
-    assert not _still_open(result), "chit-chat was reported as an unresolved member request"
+    assert not _still_open(result), (
+        "chit-chat was reported as an unresolved member request"
+    )
     assert "pass it on to the program team" not in chat.sent(timing.GENERATE)[-1], (
         "the member was promised the program team would hear that her daughter had arrived"
     )
@@ -221,7 +270,9 @@ async def test_member_services_is_acknowledged_out_loud(spec):
         ),
     )
 
-    assert _ledger(agent) == [(IntentKind.UNSUPPORTED.value, IntentStatus.ACKNOWLEDGED.value)]
+    assert _ledger(agent) == [
+        (IntentKind.UNSUPPORTED.value, IntentStatus.ACKNOWLEDGED.value)
+    ]
     assert "pass it on to the program team" in chat.sent(timing.GENERATE)[-1], (
         "the one line there is for member services was never said"
     )
@@ -235,11 +286,15 @@ async def test_a_side_request_is_closed_by_nothing_here(spec):
         spec,
         TurnDecision(
             values={SLOT: "yes"},
-            secondary_intents=[_raised("could you email me a copy", SecondaryIntentKind.REQUEST)],
+            secondary_intents=[
+                _raised("could you email me a copy", SecondaryIntentKind.REQUEST)
+            ],
         ),
     )
 
-    assert [intent["kind"] for intent in _still_open(result)] == [IntentKind.SIDE_REQUEST.value]
+    assert [intent["kind"] for intent in _still_open(result)] == [
+        IntentKind.SIDE_REQUEST.value
+    ]
 
 
 async def test_a_whole_turn_of_everything_at_once(spec):
@@ -256,9 +311,14 @@ async def test_a_whole_turn_of_everything_at_once(spec):
         TurnDecision(
             event_type=EventType.ANSWERED_WITH_REQUEST,
             secondary_intents=[
-                _raised("when is somebody ringing back about the bill", SecondaryIntentKind.MEMBER_SERVICES),
+                _raised(
+                    "when is somebody ringing back about the bill",
+                    SecondaryIntentKind.MEMBER_SERVICES,
+                ),
                 _raised("could you email me a copy", SecondaryIntentKind.REQUEST),
-                _raised("what counts as a resource", SecondaryIntentKind.ABOUT_THE_SURVEY),
+                _raised(
+                    "what counts as a resource", SecondaryIntentKind.ABOUT_THE_SURVEY
+                ),
                 _raised("her daughter has just arrived", SecondaryIntentKind.ASIDE),
             ],
         ),
@@ -270,7 +330,9 @@ async def test_a_whole_turn_of_everything_at_once(spec):
         (IntentKind.CLARIFICATION.value, IntentStatus.RESOLVED.value),
         (IntentKind.OFF_TOPIC.value, IntentStatus.NOTED.value),
     ]
-    assert [intent["kind"] for intent in _still_open(result)] == [IntentKind.SIDE_REQUEST.value]
+    assert [intent["kind"] for intent in _still_open(result)] == [
+        IntentKind.SIDE_REQUEST.value
+    ]
 
 
 # ── and what the call reports at the end ─────────────────────────────────
@@ -280,7 +342,10 @@ def _everything_at_once() -> TurnDecision:
     return TurnDecision(
         event_type=EventType.ANSWERED_WITH_REQUEST,
         secondary_intents=[
-            _raised("when is somebody ringing back about the bill", SecondaryIntentKind.MEMBER_SERVICES),
+            _raised(
+                "when is somebody ringing back about the bill",
+                SecondaryIntentKind.MEMBER_SERVICES,
+            ),
             _raised("could you email me a copy", SecondaryIntentKind.REQUEST),
             _raised("what counts as a resource", SecondaryIntentKind.ABOUT_THE_SURVEY),
             _raised("her daughter has just arrived", SecondaryIntentKind.ASIDE),
@@ -322,7 +387,9 @@ async def test_the_report_holds_what_still_needs_somebody(spec):
     """
     outcome = await _closed_after(spec, _everything_at_once())
 
-    assert [(intent["kind"], intent["raw_text"]) for intent in outcome["open_intents"]] == [
+    assert [
+        (intent["kind"], intent["raw_text"]) for intent in outcome["open_intents"]
+    ] == [
         (IntentKind.UNSUPPORTED.value, "when is somebody ringing back about the bill"),
         (IntentKind.SIDE_REQUEST.value, "could you email me a copy"),
     ]
@@ -341,12 +408,17 @@ async def test_the_promise_to_pass_it_on_is_not_the_passing_on(spec):
         TurnDecision(
             values={SLOT: "yes"},
             secondary_intents=[
-                _raised("has her new card come through yet", SecondaryIntentKind.MEMBER_SERVICES)
+                _raised(
+                    "has her new card come through yet",
+                    SecondaryIntentKind.MEMBER_SERVICES,
+                )
             ],
         ),
     )
 
-    assert [intent["status"] for intent in outcome["open_intents"]] == [IntentStatus.ACKNOWLEDGED.value]
+    assert [intent["status"] for intent in outcome["open_intents"]] == [
+        IntentStatus.ACKNOWLEDGED.value
+    ]
 
 
 async def test_a_call_of_nothing_but_chat_reports_nothing(spec):
@@ -364,3 +436,36 @@ async def test_a_call_of_nothing_but_chat_reports_nothing(spec):
     )
 
     assert outcome["open_intents"] == []
+
+
+# ── the validation boundary the classify() unit test cannot reach ─────────
+
+
+async def test_bare_string_secondary_intent_is_classified_by_wording(spec):
+    """A model that returns a bare string in secondary_intents instead of a
+    {text, kind} object must not fail validation before capture_and_triage sees
+    it — classify() already handles the fallback shape, but Pydantic was
+    rejecting it first.
+
+    "asked when someone will get back to her about the physio bill" contains
+    "bill", so the wording classifier maps it to UNSUPPORTED.
+    """
+    # Exercise the Pydantic boundary the scripted-object tests bypass.
+    decision = TurnDecision.model_validate(
+        {
+            "values": {SLOT: "yes"},
+            "secondary_intents": [
+                "asked when someone will get back to her about the physio bill"
+            ],
+        }
+    )
+    assert isinstance(decision.secondary_intents[0], str), (
+        "bare string was coerced before classify() saw it"
+    )
+
+    agent, _, chat = await _turn(spec, decision)
+
+    assert _ledger(agent) == [
+        (IntentKind.UNSUPPORTED.value, IntentStatus.ACKNOWLEDGED.value)
+    ]
+    assert "pass it on to the program team" in chat.sent(timing.GENERATE)[-1]

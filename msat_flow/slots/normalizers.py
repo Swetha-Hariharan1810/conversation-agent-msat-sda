@@ -37,16 +37,27 @@ _AFFIRMATIVE = {
     "i have",
     "i would",
 }
-_NEGATIVE = {"no", "nope", "nah", "never", "not", "none", "negative", "didnt", "havent", "wouldnt"}
+_NEGATIVE = {
+    "no",
+    "nope",
+    "nah",
+    "never",
+    "not",
+    "none",
+    "negative",
+    "didnt",
+    "havent",
+    "wouldnt",
+}
 _AFFIRMATIVE_PHRASES = re.compile(
     r"\b(?:go ahead|of course|that'?s (?:right|correct|fine)|i suppose so|why not|"
     r"happy to|i do|i did|i would|i think so)\b",
-    re.I,
+    re.IGNORECASE,
 )
 _NEGATIVE_PHRASES = re.compile(
     r"\b(?:i don'?t think so|not really|not at all|i'?d rather not|another time|"
     r"i didn'?t|i did not|i haven'?t|i have not|i wouldn'?t|i would not)\b",
-    re.I,
+    re.IGNORECASE,
 )
 
 # "No" and "none" are complete answers to the two free-text questions — the
@@ -55,16 +66,29 @@ _NEGATIVE_PHRASES = re.compile(
 _NO_FEEDBACK = re.compile(
     r"^(?:no|none|nope|nothing|nothing really|no feedback|not really|nothing comes to mind|"
     r"nothing at all|i'?m good|all good|no thanks?|no thank you)[.!]?$",
-    re.I,
+    re.IGNORECASE,
 )
 NO_FEEDBACK_VALUE = "none"
 
-_ORDINALS = {"first": 0, "second": 1, "third": 2, "fourth": 3, "one": 0, "two": 1, "three": 2, "four": 3}
+_ORDINALS = {
+    "first": 0,
+    "second": 1,
+    "third": 2,
+    "fourth": 3,
+    "one": 0,
+    "two": 1,
+    "three": 2,
+    "four": 3,
+}
 # "Option two", "number 3", "answer four" — a member picking from a list the
 # agent has just read aloud. Deliberately tight: a bare "second" inside a longer
 # sentence ("I have a second question") must not select anything.
-_NUMBERED_CHOICE = re.compile(r"\b(?:option|number|answer|choice)\s+(one|two|three|four|1|2|3|4)\b", re.I)
-_BARE_ORDINAL = re.compile(r"^(?:the\s+)?(first|second|third|fourth|last)(?:\s+one)?[.!]?$", re.I)
+_NUMBERED_CHOICE = re.compile(
+    r"\b(?:option|number|answer|choice)\s+(one|two|three|four|1|2|3|4)\b", re.IGNORECASE
+)
+_BARE_ORDINAL = re.compile(
+    r"^(?:the\s+)?(first|second|third|fourth|last)(?:\s+one)?[.!]?$", re.IGNORECASE
+)
 
 
 def _words(text: str) -> list[str]:
@@ -178,4 +202,6 @@ def normalize(declared: SlotSpec, text: str) -> str:
         return normalize_feedback_text(text)
     if declared.type is SlotType.PERSON_NAME:
         return normalize_person_name(text)
-    raise ValueError(f"no normaliser for slot type {declared.type!r}")  # pragma: no cover
+    raise ValueError(
+        f"no normaliser for slot type {declared.type!r}"
+    )  # pragma: no cover

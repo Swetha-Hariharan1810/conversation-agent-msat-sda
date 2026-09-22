@@ -19,14 +19,29 @@ from ..slots.types import describe, slot_spec
 from . import prompts, timing
 from .schema import TurnDecision
 
+# reschedule_datetime is a state field, not a spec slot — it needs its own catalogue entry.
+_RESCHEDULE_DATETIME = "reschedule_datetime"
+_RESCHEDULE_DATETIME_DESC = (
+    "the date and/or time the member wants to be called back. Copy their words verbatim "
+    "ONLY if they named a real schedule reference — a day of the week, a time of day, a "
+    "date, or a relative expression like 'tomorrow afternoon' or 'in an hour'. "
+    "If their answer is vague or non-committal ('whenever', 'any time is fine', "
+    "'I don't mind', 'whenever suits you'), leave this slot out entirely."
+)
+
 
 def _catalogue(spec: SurveySpec, slots: list[str]) -> str:
     lines = []
     for slot in slots:
+        if slot == _RESCHEDULE_DATETIME:
+            lines.append(f"- {slot} (free text): {_RESCHEDULE_DATETIME_DESC}")
+            continue
         declared = slot_spec(slot)
         line = f"- {slot} ({declared.type.value}): {describe(slot)}"
         if declared.type is SlotType.CHOICE:
-            allowed = ", ".join(f'"{option.value}" ({option.label})' for option in declared.options)
+            allowed = ", ".join(
+                f'"{option.value}" ({option.label})' for option in declared.options
+            )
             line += f"\n    one of: {allowed}"
         lines.append(line)
     return "\n".join(lines)
@@ -41,7 +56,11 @@ def relevant_slots(spec: SurveySpec, asked_slots: tuple[str, ...]) -> list[str]:
     change it.
     """
     candidates = [*asked_slots, *spec.question_slots]
-    gates = [turn.slot for turn in spec.agent_turns if turn.kind in ("intro", "consent", "reschedule_offer")]
+    gates = [
+        turn.slot
+        for turn in spec.agent_turns
+        if turn.kind in ("intro", "consent", "reschedule_offer")
+    ]
     seen: list[str] = []
     for slot in [*candidates, *gates]:
         if slot and slot not in seen and slot not in spec.payload_only_slots:
@@ -50,7 +69,12 @@ def relevant_slots(spec: SurveySpec, asked_slots: tuple[str, ...]) -> list[str]:
 
 
 def build_messages(
-    spec: SurveySpec, *, asked_slots: tuple[str, ...], last_agent_message: str, member_text: str
+    spec: SurveySpec,
+    *,
+    asked_slots: tuple[str, ...],
+    last_agent_message: str,
+    member_text: str,
+    progress_summary: str = "",
 ) -> list[dict[str, str]]:
     """The messages this turn would send. Separated out so tests can read them."""
     return [
@@ -62,6 +86,7 @@ def build_messages(
                 slots=_catalogue(spec, relevant_slots(spec, asked_slots)),
                 last_agent=last_agent_message or "(nothing yet)",
                 member=member_text,
+                progress=progress_summary,
             ),
         },
     ]
@@ -74,18 +99,25 @@ async def extract(
     asked_slots: tuple[str, ...],
     last_agent_message: str,
     member_text: str,
+    progress_summary: str = "",
 ) -> TurnDecision:
     messages = build_messages(
         spec,
         asked_slots=asked_slots,
         last_agent_message=last_agent_message,
         member_text=member_text,
+        progress_summary=progress_summary,
     )
     decision = await client.structured(messages, TurnDecision, role=timing.EXTRACT)
 
     # Drop unknown slot NAMES only. The values themselves still have to survive
     # normalisation and validation, which is where an invented option is caught.
-    allowed = set(spec.slots) - set(spec.payload_only_slots)
-    decision.values = {key: value for key, value in decision.values.items() if key in allowed}
-    decision.corrections = {key: value for key, value in decision.corrections.items() if key in allowed}
+    # reschedule_datetime is a state field (not in spec.slots) but must be kept here.
+    allowed = set(spec.slots) - set(spec.payload_only_slots) | {_RESCHEDULE_DATETIME}
+    decision.values = {
+        key: value for key, value in decision.values.items() if key in allowed
+    }
+    decision.corrections = {
+        key: value for key, value in decision.corrections.items() if key in allowed
+    }
     return decision

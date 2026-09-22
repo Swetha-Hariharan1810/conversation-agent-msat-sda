@@ -22,6 +22,7 @@ The survey-specific judgement lives in two places, and both are deliberate:
 from __future__ import annotations
 
 import asyncio
+import re
 
 from ..core import guards
 from ..core.agent import BaseAgent
@@ -55,6 +56,7 @@ from ..state import SurveyState
 _ACTION_PHASE = {
     Action.HANDOFF_SAFEGUARDING: "closing",
     Action.HANDOFF_REPRESENTATIVE: "closing",
+    Action.HANDOFF_HOLD_LIMIT: "closing",
     Action.LEAVE_VOICEMAIL: "opening",
     Action.ACKNOWLEDGE_HOLD: "survey",
     Action.GREET: "identity",
@@ -75,6 +77,7 @@ _ACTION_PHASE = {
 _ACTION_DISPOSITION = {
     Action.HANDOFF_SAFEGUARDING: "safeguarding_handoff",
     Action.HANDOFF_REPRESENTATIVE: "representative_requested",
+    Action.HANDOFF_HOLD_LIMIT: "hold_limit_transfer",
     Action.LEAVE_VOICEMAIL: "voicemail_left",
     Action.END_UNAVAILABLE: "policyholder_unavailable",
     Action.END_WRONG_NUMBER: "wrong_number",
@@ -87,8 +90,45 @@ _ACTION_DISPOSITION = {
 _TRANSFER_REASON = {
     Action.HANDOFF_SAFEGUARDING: "member_may_be_at_risk",
     Action.HANDOFF_REPRESENTATIVE: "member_asked_for_a_representative",
+    Action.HANDOFF_HOLD_LIMIT: "hold_limit_reached",
     Action.TRANSFER_RESCHEDULE: "member_requested_reschedule",
 }
+
+# Date/time patterns a member would say when they can actually name a time.
+_DATETIME_RE = re.compile(
+    r"\b(?:"
+    r"monday|tuesday|wednesday|thursday|friday|saturday|sunday|"
+    r"today|tomorrow|tonight|"
+    r"morning|afternoon|evening|night|noon|midnight|"
+    r"next\s+(?:week|month|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|"
+    r"january|february|march|april|may|june|july|august|september|october|november|december|"
+    r"\d+\s*(?:am|pm|o'clock)|"
+    r"(?:at|after|around|by|before)\s+\d+|"
+    r"in\s+(?:a\s+|an?\s+)?(?:hour|minute|day|week|couple)"
+    r")\b",
+    re.IGNORECASE,
+)
+
+# Negation words that, when appearing just before a datetime term, indicate
+# the member is rejecting that time rather than offering it.
+_NEGATION_RE = re.compile(
+    r"\b(?:can'?t|cannot|can\s+not|won'?t|will\s+not|not|don'?t|do\s+not|"
+    r"doesn'?t|does\s+not|never|unable|unavailable)\b",
+    re.IGNORECASE,
+)
+_NEGATION_WINDOW = 40  # characters to look back before a datetime match
+
+
+def _has_datetime_content(text: str) -> bool:
+    """True if text contains a datetime reference the member is offering, not rejecting."""
+    if not text:
+        return False
+    for m in _DATETIME_RE.finditer(text):
+        window = text[max(0, m.start() - _NEGATION_WINDOW) : m.start()]
+        if not _NEGATION_RE.search(window):
+            return True
+    return False
+
 
 _DO_NOT_CALL = "do_not_call"
 _ENDED_EARLY = "ended_early"
@@ -105,12 +145,20 @@ _PLANNED_GUARDS = frozenset(
 
 
 def _last_message(messages: list, role: str) -> str:
-    wanted = {"user": {"user", "human"}, "assistant": {"assistant", "ai"}}.get(role, {role})
+    wanted = {"user": {"user", "human"}, "assistant": {"assistant", "ai"}}.get(
+        role, {role}
+    )
     for message in reversed(messages or []):
-        kind = message.get("role") if isinstance(message, dict) else getattr(message, "type", "")
+        kind = (
+            message.get("role")
+            if isinstance(message, dict)
+            else getattr(message, "type", "")
+        )
         if kind in wanted:
             content = (
-                message.get("content", "") if isinstance(message, dict) else getattr(message, "content", "")
+                message.get("content", "")
+                if isinstance(message, dict)
+                else getattr(message, "content", "")
             )
             if content:
                 return str(content)
@@ -141,7 +189,9 @@ class MsatSurveyAgent(BaseAgent):
 
     @property
     def _gate_slots(self) -> frozenset[str]:
-        return frozenset({self._identity_slot, self._consent_slot, self._reschedule_slot})
+        return frozenset(
+            {self._identity_slot, self._consent_slot, self._reschedule_slot}
+        )
 
     def _gate_limit(self, slot: str) -> int:
         policy = self.spec.policy
@@ -151,9 +201,13 @@ class MsatSurveyAgent(BaseAgent):
             return policy.max_consent_asks
         return policy.max_asks_per_slot
 
+    @staticmethod
+    def _field_event(field: str, value: str) -> dict:
+        return {"eventType": "CallAgentField", "data": {"field": field, "value": value}}
+
     # ── turn ─────────────────────────────────────────────────────────────
 
-    async def run(self, state: SurveyState) -> dict:  # noqa: C901
+    async def run(self, state: SurveyState) -> dict:
         member_text = _last_message(state.get("messages", []), "user")
         last_agent = _last_message(state.get("messages", []), "assistant")
 
@@ -176,7 +230,9 @@ class MsatSurveyAgent(BaseAgent):
         # a turn the guard fires on is never read as survey content, and what the
         # extractor made of it is discarded here unlooked at.
         if guard.kind in _PLANNED_GUARDS:
-            return await self._act(state, self._plan(state, guard=guard.kind), updates=dict(guard.update))
+            return await self._act(
+                state, self._plan(state, guard=guard.kind), updates=dict(guard.update)
+            )
         if guard.kind == _DO_NOT_CALL:
             return self._end(
                 state,
@@ -185,13 +241,8 @@ class MsatSurveyAgent(BaseAgent):
                 reason="member asked not to be called again",
             )
         if guard.kind == guards.HOLD_EXHAUSTED:
-            return self._end(
-                state,
-                self.spec.policy.line("unable_to_continue"),
-                disposition=_ENDED_EARLY,
-                reason="member never came back to the call",
-                updates=guard.update,
-            )
+            plan = self._plan(state, guard=guards.HOLD_EXHAUSTED)
+            return await self._act(state, plan, updates=dict(guard.update))
         if guard.handled:
             return {**self.persisted(), **guard.update}
 
@@ -219,21 +270,85 @@ class MsatSurveyAgent(BaseAgent):
         # more" would otherwise go past. It is why the extractor is asked to lean
         # towards raising a concern rather than away from it.
         if decision.safeguarding_concern:
-            return await self._act(state, self._plan(state, guard=guards.SAFEGUARDING), updates={})
+            return await self._act(
+                state, self._plan(state, guard=guards.SAFEGUARDING), updates={}
+            )
         if decision.asks_for_representative:
-            return await self._act(state, self._plan(state, guard=guards.REPRESENTATIVE_REQUEST), updates={})
+            return await self._act(
+                state,
+                self._plan(state, guard=guards.REPRESENTATIVE_REQUEST),
+                updates={},
+            )
 
-        self.capture_and_triage(decision)
+        # Member explicitly asked to end the survey — honour it regardless of
+        # where in the call this happens; survey_started is only required for the
+        # CLOSING event type to avoid false positives on ambiguous goodbyes.
+        if decision.refuses_survey:
+            return await self._act(
+                state,
+                self._plan(state, guard=guards.MEMBER_CLOSING),
+                updates={},
+            )
+
+        # Member asked to be called back at another time. Honour at any turn —
+        # consent phase or mid-survey — and skip recording any survey answers
+        # from this turn. A datetime they offered in the same breath is captured
+        # so the call can close immediately if they named one.
+        if decision.wants_reschedule:
+            dt = decision.values.pop("reschedule_datetime", None)
+            if dt is None and _has_datetime_content(member_text):
+                dt = member_text.strip()
+            upd: dict = {
+                "ambiguous_counts": self.clear_hold_counter(state),
+                "consent": CONSENT_DECLINED,
+                "reschedule": "yes",
+            }
+            if dt and not state.get("reschedule_datetime"):
+                upd["reschedule_datetime"] = dt
+            # Both fields bypass record_many — it only knows spec slots — so their events have to be raised here.
+            # A later turn that re-enters this same branch must not re-report a fact already recorded.
+            events = (
+                [self._field_event("wants_reschedule", "yes")]
+                if state.get("reschedule") != "yes"
+                else []
+            )
+            if "reschedule_datetime" in upd:
+                events.append(
+                    self._field_event("reschedule_datetime", upd["reschedule_datetime"])
+                )
+            upd["metadata_events"] = events
+            return await self._act(
+                state,
+                self._plan(state, updates=upd),
+                updates=upd,
+                last_member_message=member_text,
+                free_flow=True,
+            )
+
+        if decision.event_type is EventType.CLOSING and state.get("survey_started"):
+            return await self._act(
+                state,
+                self._plan(state, guard=guards.MEMBER_CLOSING),
+                updates={},
+            )
+
+        self.capture_and_triage(decision, slot=awaiting)
 
         updates: dict = {"ambiguous_counts": self.clear_hold_counter(state)}
 
+        # reschedule_datetime is a state field, not a spec slot — the slot manager
+        # cannot handle it, so intercept it before record_many.
+        datetime_from_llm: str | None = decision.values.pop("reschedule_datetime", None)
+
         # Corrections win over new answers for the same question.
         rejected: dict[str, str] = {}
+        corrected_slots: list[str] = []
         for slot, raw in (decision.corrections or {}).items():
             if not self._may_record(slot, awaiting):
                 continue
             accepted, reason = self.record(slot, raw)
             if accepted:
+                corrected_slots.append(slot)
                 self.resolve_intents(target=slot)
             else:
                 rejected[slot] = reason
@@ -241,10 +356,30 @@ class MsatSurveyAgent(BaseAgent):
         recordable = {
             slot: raw
             for slot, raw in (decision.values or {}).items()
-            if self._may_record(slot, awaiting) and slot not in (decision.corrections or {})
+            if self._may_record(slot, awaiting)
+            and slot not in (decision.corrections or {})
+            and not (decision.off_topic and slot == awaiting)
+            # A gate slot value must not be recorded when the member also declined:
+            # the decline wins and _gate_updates must not see a stale answer.
+            and not (
+                decision.declines_question
+                and slot == awaiting
+                and slot in self._gate_slots
+            )
         }
-        _, more_rejected = self.record_many(recordable)
+        newly_answered, more_rejected = self.record_many(recordable)
         rejected.update(more_rejected)
+        # A clarification raised on the question just answered is now settled.
+        for slot in newly_answered:
+            self.resolve_clarifications(slot=slot)
+
+        # Emit one CallAgentField event per field recorded this turn.
+        field_events = [
+            self._field_event(slot, self.answer(slot))
+            for slot in corrected_slots + newly_answered
+        ]
+        if field_events:
+            updates["metadata_events"] = field_events
 
         # An answer whose gating question has since changed does not belong to
         # this member's survey any more. Dropping it here is what keeps a
@@ -254,14 +389,50 @@ class MsatSurveyAgent(BaseAgent):
 
         updates.update(self._gate_updates(state, decision))
 
-        if awaiting == "reschedule_datetime" and member_text.strip() and not state.get("reschedule_datetime"):
-            updates["reschedule_datetime"] = member_text.strip()
+        if (
+            awaiting == "reschedule_datetime"
+            and member_text.strip()
+            and not state.get("reschedule_datetime")
+        ):
+            ask_count = (state.get("ask_counts") or {}).get("reschedule_datetime", 0)
+            at_limit = ask_count >= self._gate_limit("reschedule_datetime")
+            # LLM primary: extractor sets the slot only when it recognised a real time reference.
+            # Regex fallback: catches valid times the LLM missed (e.g. model quirk on edge cases).
+            datetime_value = datetime_from_llm or (
+                member_text.strip() if _has_datetime_content(member_text) else None
+            )
+            if datetime_value or at_limit:
+                updates["reschedule_datetime"] = datetime_value or member_text.strip()
+                # Another field record_many never sees — same reasoning as the
+                # wants_reschedule shortcut above.
+                updates["metadata_events"] = updates.get("metadata_events", []) + [
+                    self._field_event(
+                        "reschedule_datetime", updates["reschedule_datetime"]
+                    )
+                ]
+            else:
+                plan = self._plan(
+                    state, updates=updates, declined=list(state.get("declined") or [])
+                )
+                return await self._act(
+                    state,
+                    plan,
+                    updates=updates,
+                    last_member_message=member_text,
+                    retry_slot="reschedule_datetime",
+                    retry_reason="no specific date or time was given",
+                    free_flow=True,
+                )
 
         # The member would rather not answer what was just asked. That is an
         # answer about the survey, not a failure of the call.
         declined = list(state.get("declined") or [])
-        if decision.declines_question or decision.event_type is EventType.DECLINED:
-            if awaiting and awaiting not in self._gate_slots and awaiting not in declined:
+        if decision.declines_question or decision.event_type is EventType.DECLINED:  # noqa: SIM102
+            if (
+                awaiting
+                and awaiting not in self._gate_slots
+                and awaiting not in declined
+            ):
                 declined.append(awaiting)
                 updates["declined"] = declined
 
@@ -270,12 +441,12 @@ class MsatSurveyAgent(BaseAgent):
             slot, reason = retry
             over = self.slot(slot).attempt_count >= self._gate_limit(slot)
             if over and slot in self._gate_slots:
-                return self._gate_gave_up(state, slot, updates)
+                return await self._gate_gave_up(state, slot, updates)
             if over:
                 if slot not in declined:
                     declined.append(slot)
                 updates["declined"] = declined
-                retry = None
+                return await self._gate_gave_up(state, slot, updates)
 
         plan = self._plan(state, updates=updates, declined=declined)
 
@@ -290,11 +461,11 @@ class MsatSurveyAgent(BaseAgent):
             if ask_counts.get(slot, 0) < self._gate_limit(slot):
                 break
             if slot in self._gate_slots:
-                return self._gate_gave_up(state, slot, updates)
+                return await self._gate_gave_up(state, slot, updates)
             if slot not in declined:
                 declined.append(slot)
             updates["declined"] = declined
-            plan = self._plan(state, updates=updates, declined=declined)
+            return await self._gate_gave_up(state, slot, updates)
 
         # Only re-ask if the planner still wants that question. A correction can
         # re-open an earlier branch — answering "actually I never opened them"
@@ -309,8 +480,27 @@ class MsatSurveyAgent(BaseAgent):
                 last_member_message=member_text,
                 retry_slot=slot,
                 retry_reason=reason,
+                # retries always need a personalised bridge — free flow unconditionally
+                free_flow=True,
             )
-        return await self._act(state, plan, updates=updates, last_member_message=member_text)
+        # Suppress the previous member message when moving to a fresh question.
+        # Passing it through causes the generator to see e.g. "Yes." while being
+        # asked to put a yes/no question, which makes it conclude the question has
+        # already been answered and produce only "Thank you." — leaving the slot
+        # never asked and the call looping until a guard fires.
+        last_msg = (
+            ""
+            if self.asks_and_nothing_more(plan, decision, ask_counts=ask_counts)
+            else member_text
+        )
+        return await self._act(
+            state,
+            plan,
+            updates=updates,
+            last_member_message=last_msg,
+            # extractor signals whether the transition needs dynamic generation
+            free_flow=decision.requires_free_flow,
+        )
 
     # ── reading the turn ─────────────────────────────────────────────────
 
@@ -335,39 +525,77 @@ class MsatSurveyAgent(BaseAgent):
         # starts a call that would have been made anyway.
         settled = self._read_without_a_call(state, member_text)
         if settled is not None:
-            return await self.check_guards(state, member_text, last_agent), settled, None
+            return (
+                await self.check_guards(state, member_text, last_agent),
+                settled,
+                None,
+            )
 
-        guard, read = await asyncio.gather(
-            self.check_guards(state, member_text, last_agent),
-            self._read(state, member_text, last_agent),
-            return_exceptions=True,
+        guard_task = asyncio.create_task(
+            self.check_guards(state, member_text, last_agent)
         )
-        if isinstance(guard, BaseException):
-            # Not a provider outage — `detect_guard` degrades to patterns for
-            # those and returns normally — so this is a fault, and it propagates
-            # exactly as it did when nothing else was in flight.
-            raise guard
-        if isinstance(read, BaseException):
-            return guard, None, read
+        read_task = asyncio.create_task(self._read(state, member_text, last_agent))
+
+        # Wait for whichever finishes first rather than always blocking on guard.
+        # When extract finishes first (common after the guard pre-screen makes guard
+        # instant), we return immediately so generate can start without waiting for
+        # guard's LLM round-trip. When guard finishes first we check it; if it fired
+        # we cancel extract and return early without waiting for it.
+        done, _ = await asyncio.wait(
+            {guard_task, read_task}, return_when=asyncio.FIRST_COMPLETED
+        )
+
+        if guard_task in done and read_task not in done:
+            # Guard resolved first — check it before extract finishes.
+            try:
+                guard = guard_task.result()
+            except BaseException:
+                read_task.cancel()
+                await asyncio.gather(read_task, return_exceptions=True)
+                raise
+            if guard.kind:
+                read_task.cancel()
+                await asyncio.gather(read_task, return_exceptions=True)
+                return guard, None, None
+            try:
+                read = await read_task
+            except BaseException as exc:  # noqa: BLE001
+                return guard, None, exc
+            return guard, read, None
+
+        # Extract finished first (or both finished simultaneously).
+        try:
+            read = read_task.result()
+        except BaseException as read_exc:  # noqa: BLE001
+            # Extract failed — still collect guard before returning so the guard
+            # path is not silently skipped on a failed-read turn.
+            try:
+                guard = await guard_task
+            except Exception:  # noqa: BLE001
+                raise read_exc
+            return guard, None, read_exc
+
+        guard = await guard_task
+        if guard.kind:
+            return guard, None, None
         return guard, read, None
 
-    def _read_without_a_call(self, state: SurveyState, member_text: str) -> TurnDecision | None:
+    def _read_without_a_call(
+        self, state: SurveyState, member_text: str
+    ) -> TurnDecision | None:
         """What the turn reads as when no provider call is needed, or ``None``.
 
-        Two turns never reach the extractor: a date and time, which is free text
-        the call captures directly, and every turn when no model is configured.
-        Both are decided here rather than inside the call that would have made
-        the request, so nothing is launched for a turn that would not have made
-        one.
+        The only turn that skips the extractor is every turn when no model is
+        configured (offline mode). The datetime turn used to be bypassed too, but
+        now the extractor validates whether the member actually named a time.
         """
-        # Date/time is free text — skip the extractor and capture it directly.
-        if state.get("awaiting_slot") == "reschedule_datetime":
-            return TurnDecision()
         if self.client is None:
             return self._read_offline(state, member_text)
         return None
 
-    async def _read(self, state: SurveyState, member_text: str, last_agent: str) -> TurnDecision:
+    async def _read(
+        self, state: SurveyState, member_text: str, last_agent: str
+    ) -> TurnDecision:
         """Read the turn with the model. The no-provider cases are settled above."""
         asked = tuple(filter(None, [state.get("awaiting_slot", "")]))
         return await extract(
@@ -376,6 +604,7 @@ class MsatSurveyAgent(BaseAgent):
             asked_slots=asked,
             last_agent_message=last_agent,
             member_text=member_text,
+            progress_summary=self._progress_summary(state),
         )
 
     @staticmethod
@@ -424,16 +653,27 @@ class MsatSurveyAgent(BaseAgent):
                 )
 
         if not state.get("consent"):
-            consent = self.answer(self._consent_slot)
-            if consent == "yes":
-                updates["consent"] = CONSENT_GRANTED
-            elif consent == "no":
+            awaiting = state.get("awaiting_slot", "")
+            # declines_question beats a simultaneously extracted "yes": the member
+            # said both "I have a couple of minutes" and "I don't want a survey",
+            # and the refusal must win over the partial affirmative.
+            if awaiting == self._consent_slot and decision.declines_question:
                 updates["consent"] = CONSENT_DECLINED
+            else:
+                consent = self.answer(self._consent_slot)
+                if consent == "yes":
+                    updates["consent"] = CONSENT_GRANTED
+                elif consent == "no":
+                    updates["consent"] = CONSENT_DECLINED
 
         if not state.get("reschedule"):
-            reschedule = self.answer(self._reschedule_slot)
-            if reschedule:
-                updates["reschedule"] = reschedule
+            awaiting = state.get("awaiting_slot", "")
+            if awaiting == self._reschedule_slot and decision.declines_question:
+                updates["reschedule"] = "no"
+            else:
+                reschedule = self.answer(self._reschedule_slot)
+                if reschedule:
+                    updates["reschedule"] = reschedule
 
         return updates
 
@@ -444,7 +684,9 @@ class MsatSurveyAgent(BaseAgent):
             if turn.when is None or not turn.slot or not self.answered(turn.slot):
                 continue
             if not applies(
-                turn, answers=self._answers, payload_lookup=lambda s: self.payload_value(state, s)
+                turn,
+                answers=self._answers,
+                payload_lookup=lambda s: self.payload_value(state, s),
             ):
                 self.forget(turn.slot)
                 dropped.append(turn.slot)
@@ -500,6 +742,9 @@ class MsatSurveyAgent(BaseAgent):
             # outstanding question would spend the budget on someone being
             # careful.
             return None
+        if decision.off_topic:
+            self.slot(awaiting).record(None, success=False)
+            return awaiting, "the response was unrelated to the survey question"
         if decision.event_type in (EventType.AMBIGUOUS, EventType.CORRECTED):
             self.slot(awaiting).record(None, success=False)
             return awaiting, "the answer was unclear"
@@ -509,6 +754,25 @@ class MsatSurveyAgent(BaseAgent):
         return None
 
     # ── planning and acting ──────────────────────────────────────────────
+
+    def _progress_summary(self, state: SurveyState, updates: dict | None = None) -> str:
+        """Compact snapshot of recorded answers and gate state for the LLM prompt."""
+        merged = {**state, **(updates or {})}
+        parts: list[str] = []
+        if self._answers:
+            lines = "\n".join(
+                f"  - {slot}: {val}" for slot, val in self._answers.items()
+            )
+            parts.append(f"Answers recorded:\n{lines}")
+        declined = list(merged.get("declined") or [])
+        if declined:
+            parts.append(f"Declined to answer: {', '.join(declined)}")
+        gates = [
+            f"{key}={merged[key]}" for key in ("identity", "consent") if merged.get(key)
+        ]
+        if gates:
+            parts.append(", ".join(gates))
+        return "\n".join(parts)
 
     def _plan(
         self,
@@ -522,7 +786,9 @@ class MsatSurveyAgent(BaseAgent):
         return plan_next(
             self.spec,
             answers=dict(self._answers),
-            declined=tuple(declined if declined is not None else merged.get("declined") or ()),
+            declined=tuple(
+                declined if declined is not None else merged.get("declined") or ()
+            ),
             identity=merged.get("identity") or "",
             consent=merged.get("consent") or "",
             reschedule=merged.get("reschedule") or "",
@@ -532,20 +798,10 @@ class MsatSurveyAgent(BaseAgent):
             payload_lookup=lambda slot: self.payload_value(state, slot),
         )
 
-    def _gate_gave_up(self, state: SurveyState, slot: str, updates: dict) -> dict:
-        """A gate we asked as often as policy allows and never got an answer to.
-
-        The call cannot proceed past a gate — there is no version of this survey
-        that runs without knowing who is on the line and that they agreed to it —
-        so it ends, politely, saying which gate it was.
-        """
-        return self._end(
-            state,
-            self.spec.policy.line("unable_to_continue"),
-            disposition=_ENDED_EARLY,
-            reason=f"{slot}_unresolved",
-            updates=updates,
-        )
+    async def _gate_gave_up(self, state: SurveyState, slot: str, updates: dict) -> dict:
+        """A gate we asked as often as policy allows and never got an answer to."""
+        plan = self._plan(state, guard=guards.REPRESENTATIVE_REQUEST, updates=updates)
+        return await self._act(state, plan, updates=updates)
 
     def asks_and_nothing_more(
         self,
@@ -599,7 +855,10 @@ class MsatSurveyAgent(BaseAgent):
         # because it is the one action that says something while leaving the
         # question outstanding (see PRESERVE_AWAITING) — if it ever joins that
         # set, "take your time" must not become a fixed line.
-        if plan.action not in QUESTION_ACTIONS or plan.action is Action.ACKNOWLEDGE_HOLD:
+        if (
+            plan.action not in QUESTION_ACTIONS
+            or plan.action is Action.ACKNOWLEDGE_HOLD
+        ):
             return False
         # Asked before means there is a reason it is being asked again, and the
         # member should hear that rather than the same sentence twice.
@@ -620,6 +879,7 @@ class MsatSurveyAgent(BaseAgent):
         last_member_message: str = "",
         retry_slot: str = "",
         retry_reason: str = "",
+        free_flow: bool = True,
     ) -> dict:
         self.visit(plan.preamble_node)
         self.visit(plan.node)
@@ -632,7 +892,15 @@ class MsatSurveyAgent(BaseAgent):
             retry_slot=retry_slot,
             retry_reason=retry_reason,
             attempt=self.slot(retry_slot).attempt_count if retry_slot else 0,
-            attempt_limit=self._gate_limit(retry_slot) if retry_slot else self.spec.policy.max_asks_per_slot,
+            attempt_limit=self._gate_limit(retry_slot)
+            if retry_slot
+            else self.spec.policy.max_asks_per_slot,
+            # Progress context only matters when retrying a slot; on straight-through
+            # turns the planner already chose the right question and the extra tokens add latency.
+            progress_summary=self._progress_summary(state, updates)
+            if retry_slot
+            else "",
+            free_flow=free_flow,
         )
 
         # The line just composed puts the question again, which is the answer to
@@ -641,7 +909,7 @@ class MsatSurveyAgent(BaseAgent):
         # and true even when the provider failed, since the fallback reads the
         # script's own wording, options and all.
         if retry_slot:
-            self.resolve_clarifications()
+            self.resolve_clarifications(slot=retry_slot)
 
         extra: dict = {"phase": _ACTION_PHASE.get(plan.action, "survey")}
         asked = retry_slot or (plan.slot if plan.action in QUESTION_ACTIONS else "")
@@ -667,38 +935,55 @@ class MsatSurveyAgent(BaseAgent):
         # not to say.
         settled = {**state, **updates, **extra}
 
+        # Pull out any CallAgentField events accumulated during recording so they
+        # can be combined with signal events rather than overwritten by them.
+        field_events: list[dict] = updates.pop("metadata_events", [])
+
         if plan.action in TRANSFER_ACTIONS:
             disposition = _ACTION_DISPOSITION[plan.action]
             reason = _TRANSFER_REASON[plan.action]
+            signal = self.signal_transfer(
+                settled,
+                message,
+                reason,
+                initiator="Caller",
+                disposition=disposition,
+                output_data=self._outcome(
+                    settled, disposition=disposition, reason=reason
+                ),
+            )
             return {
                 **self.persisted(),
                 **updates,
                 **extra,
-                **self.signal_transfer(
-                    settled,
-                    message,
-                    reason,
-                    initiator="Caller",
-                    disposition=disposition,
-                    output_data=self._outcome(settled, disposition=disposition, reason=reason),
-                ),
+                **signal,
+                "metadata_events": field_events + signal.get("metadata_events", []),
             }
 
         if plan.action in FINAL_ACTIONS:
-            disposition = _ACTION_DISPOSITION.get(plan.action) or self._survey_disposition(settled)
+            disposition = _ACTION_DISPOSITION.get(
+                plan.action
+            ) or self._survey_disposition(settled)
+            signal = self.signal_complete(
+                settled,
+                message,
+                disposition=disposition,
+                output_data=self._outcome(
+                    settled, disposition=disposition, reason=plan.action.value
+                ),
+            )
             return {
                 **self.persisted(),
                 **updates,
                 **extra,
-                **self.signal_complete(
-                    settled,
-                    message,
-                    disposition=disposition,
-                    output_data=self._outcome(settled, disposition=disposition, reason=plan.action.value),
-                ),
+                **signal,
+                "metadata_events": field_events + signal.get("metadata_events", []),
             }
 
-        return {**self.persisted(), **updates, **extra, **self.speak(state, message)}
+        result = {**self.persisted(), **updates, **extra, **self.speak(state, message)}
+        if field_events:
+            result["metadata_events"] = field_events
+        return result
 
     def _end(
         self,
@@ -719,7 +1004,9 @@ class MsatSurveyAgent(BaseAgent):
                 message,
                 disposition=disposition,
                 escalation_reason=reason if disposition == _ENDED_EARLY else "",
-                output_data=self._outcome(settled, disposition=disposition, reason=reason),
+                output_data=self._outcome(
+                    settled, disposition=disposition, reason=reason
+                ),
             ),
         }
 
@@ -736,23 +1023,39 @@ class MsatSurveyAgent(BaseAgent):
         return _SURVEYED if complete else _PARTIAL
 
     def _outcome(self, state: SurveyState, *, disposition: str, reason: str) -> dict:
-        payload_lookup = lambda slot: self.payload_value(state, slot)  # noqa: E731
-        answers = {slot: value for slot, value in self._answers.items() if slot in self.spec.question_slots}
-        declined = [slot for slot in (state.get("declined") or []) if slot in self.spec.question_slots]
+        payload_lookup = lambda slot: self.payload_value(state, slot)
+        answers = {
+            slot: value
+            for slot, value in self._answers.items()
+            if slot in self.spec.question_slots
+        }
+        declined = [
+            slot
+            for slot in (state.get("declined") or [])
+            if slot in self.spec.question_slots
+        ]
         return {
             "call_outcome": {
                 "status": "incomplete" if disposition == _ENDED_EARLY else "complete",
                 "disposition": disposition,
                 "reason": reason,
-                "workflow_subtype": state.get("workflow_subtype") or "MEMBER_SATISFACTION_SURVEY",
+                "workflow_subtype": state.get("workflow_subtype")
+                or "MEMBER_SATISFACTION_SURVEY",
                 # The work-item facts that decided which questions this member
                 # was asked, so a reader can see why question 5 was or was not
                 # put without going back to the work item.
-                "gating_facts": {slot: payload_lookup(slot) for slot in self.spec.condition_payload_slots},
+                "gating_facts": {
+                    slot: payload_lookup(slot)
+                    for slot in self.spec.condition_payload_slots
+                },
                 "answers": answers,
                 "declined_questions": declined,
                 "skipped_questions": [
-                    {"slot": skipped.slot, "node": skipped.node, "reason": skipped.reason}
+                    {
+                        "slot": skipped.slot,
+                        "node": skipped.node,
+                        "reason": skipped.reason,
+                    }
                     for skipped in skipped_questions(
                         self.spec, answers=self._answers, payload_lookup=payload_lookup
                     )

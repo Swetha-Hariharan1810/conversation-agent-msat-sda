@@ -37,7 +37,7 @@ import os
 import re
 import time
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from msat_flow.llm import timing
@@ -125,7 +125,9 @@ class Conversation:
 
 
 def _call(data: dict) -> timing.Call:
-    return timing.Call(data["role"], data["seconds"], data.get("ok", True), data.get("at", 0.0))
+    return timing.Call(
+        data["role"], data["seconds"], data.get("ok", True), data.get("at", 0.0)
+    )
 
 
 def _compact(data: dict) -> str:
@@ -179,7 +181,7 @@ class Recorder:
 
     def __init__(self) -> None:
         self.conversations: dict[str, Conversation] = {}
-        self.started = datetime.now(timezone.utc)
+        self.started = datetime.now(UTC)
         self.context: dict[str, str] = {}
         self._directory: Path | None = None
         self._written = 0
@@ -221,7 +223,9 @@ class Recorder:
     # ── writing ──────────────────────────────────────────────────────────
 
     def _start_index(self) -> None:
-        context = " · ".join(f"**{key}** {value}" for key, value in self.context.items())
+        context = " · ".join(
+            f"**{key}** {value}" for key, value in self.context.items()
+        )
         (self._directory / "index.md").write_text(
             "\n".join(
                 [
@@ -263,7 +267,8 @@ class Recorder:
 
         conversation.path.write_text(self._markdown(conversation), encoding="utf-8")
         conversation.path.with_suffix(".json").write_text(
-            json.dumps(self._record(conversation), indent=2, ensure_ascii=False), encoding="utf-8"
+            json.dumps(self._record(conversation), indent=2, ensure_ascii=False),
+            encoding="utf-8",
         )
         self._append_index_row(conversation)
         self._append_jsonl(conversation)
@@ -277,7 +282,8 @@ class Recorder:
         slowest = f"{max(timed):.2f}s" if timed else "—"
         stats = timing.summarise(conversation.calls)
         per_role = "".join(
-            f" {stats[role].total_s:.2f}s |" if role in stats else " — |" for role in timing.ROLES
+            f" {stats[role].total_s:.2f}s |" if role in stats else " — |"
+            for role in timing.ROLES
         )
         row = (
             f"| {conversation.index} | {MARK.get(conversation.outcome, '?')} "
@@ -289,7 +295,10 @@ class Recorder:
 
     def _append_jsonl(self, conversation: Conversation) -> None:
         with (self.directory / "run.jsonl").open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(self._record(conversation), ensure_ascii=False, default=str) + "\n")
+            handle.write(
+                json.dumps(self._record(conversation), ensure_ascii=False, default=str)
+                + "\n"
+            )
 
     def _record(self, conversation: Conversation) -> dict:
         calls = conversation.calls
@@ -301,8 +310,12 @@ class Recorder:
             "context": self.context,
             # Per-role totals for this test, so a baseline can be rebuilt from
             # run.jsonl alone without re-reading every exchange.
-            "timings": {role: stats.as_dict() for role, stats in timing.summarise(calls).items()},
-            "turn_total_s": round(sum(turn.took_s for turn in conversation.exchanges), 3),
+            "timings": {
+                role: stats.as_dict() for role, stats in timing.summarise(calls).items()
+            },
+            "turn_total_s": round(
+                sum(turn.took_s for turn in conversation.exchanges), 3
+            ),
             "calls_total_s": round(sum(call.seconds for call in calls), 3),
             "waiting_s": round(conversation.waiting_s, 3),
             "exchanges": [asdict(exchange) for exchange in conversation.exchanges],
@@ -314,7 +327,8 @@ class Recorder:
         lines = [
             f"# {mark} {conversation.test}",
             "",
-            " · ".join(f"**{key}** {value}" for key, value in self.context.items()) or "_no context_",
+            " · ".join(f"**{key}** {value}" for key, value in self.context.items())
+            or "_no context_",
             "",
             f"{len(turns)} turns — **{conversation.outcome}**{self._timing(turns)}",
             "",
@@ -364,8 +378,10 @@ class Recorder:
         if round(conversation.waiting_s, 2) < round(provider_total, 2):
             rows += [
                 "",
-                f"{provider_total:.2f}s of provider time, {conversation.waiting_s:.2f}s of it "
-                f"waited for — the rest ran inside another call's wait.",
+                (
+                    f"{provider_total:.2f}s of provider time, {conversation.waiting_s:.2f}s of it "
+                    f"waited for — the rest ran inside another call's wait."
+                ),
             ]
         return [*rows, ""]
 
@@ -394,11 +410,15 @@ class Recorder:
             lines += [f"- decided: `{_compact(exchange.decided)}`"]
         if exchange.calls:
             spent = " · ".join(
-                f"{call['role']} {call['seconds']:.2f}s" + ("" if call.get("ok", True) else " (failed)")
+                f"{call['role']} {call['seconds']:.2f}s"
+                + ("" if call.get("ok", True) else " (failed)")
                 for call in exchange.calls
             )
             together = _overlapping(exchange)
-            lines += [f"- calls: {spent}" + (f" — {together} ran together" if together else "")]
+            lines += [
+                f"- calls: {spent}"
+                + (f" — {together} ran together" if together else "")
+            ]
         lines += [""]
         return lines
 
@@ -414,9 +434,14 @@ class Recorder:
             tally[conversation.outcome] = tally.get(conversation.outcome, 0) + 1
         failed = [c for c in written if c.failed]
 
-        lines = ["", "", f"**{len(written)} conversations** — " + ", ".join(
-            f"{count} {name}" for name, count in sorted(tally.items())
-        ) or "nothing ran", ""]
+        lines = [
+            "",
+            "",
+            f"**{len(written)} conversations** — "
+            + ", ".join(f"{count} {name}" for name, count in sorted(tally.items()))
+            or "nothing ran",
+            "",
+        ]
         lines += self._baseline(written)
         if failed:
             lines += ["## Failures", "", "The transcripts worth reading first.", ""]
@@ -448,13 +473,17 @@ class Recorder:
         lines = [
             "## Latency baseline",
             "",
-            f"{len(calls)} provider calls across {turns} turns. "
-            f"p50 and p95 are per call; the share is that role's total against the "
-            f"{turn_total:.1f}s the turns took end to end, so what the three leave over is "
-            f"everything that is not the provider.",
+            (
+                f"{len(calls)} provider calls across {turns} turns. "
+                f"p50 and p95 are per call; the share is that role's total against the "
+                f"{turn_total:.1f}s the turns took end to end, so what the three leave over is "
+                f"everything that is not the provider."
+            ),
             "",
-            "Calls made together are counted once in *waiting* and separately in *total*, "
-            "so a role's share can exceed what removing it would save.",
+            (
+                "Calls made together are counted once in *waiting* and separately in *total*, "
+                "so a role's share can exceed what removing it would save."
+            ),
             "",
             "| role | calls | p50 | p95 | slowest | total | share of turn time |",
             "|---|---:|---:|---:|---:|---:|---:|",
@@ -480,9 +509,11 @@ class Recorder:
         if round(waiting, 2) < round(provider_total, 2):
             lines += [
                 "",
-                f"{provider_total - waiting:.2f}s of provider time was spent inside another "
-                f"call's wait — that is what the concurrent calls saved, and it is the "
-                f"difference between the two rows above.",
+                (
+                    f"{provider_total - waiting:.2f}s of provider time was spent inside another "
+                    f"call's wait — that is what the concurrent calls saved, and it is the "
+                    f"difference between the two rows above."
+                ),
             ]
         return [*lines, ""]
 
@@ -492,7 +523,9 @@ class Recorder:
         calls = [call for conversation in written for call in conversation.calls]
         if not calls:
             return ""
-        turn_total = sum(turn.took_s for conversation in written for turn in conversation.exchanges)
+        turn_total = sum(
+            turn.took_s for conversation in written for turn in conversation.exchanges
+        )
         return " · ".join(
             f"{role} p50 {stats.p50_s:.2f}s p95 {stats.p95_s:.2f}s"
             + (f" ({stats.total_s / turn_total:.0%})" if turn_total else "")
@@ -516,15 +549,21 @@ class Recorder:
                     "turn_total_s": round(turn_total, 3),
                     # Overlap counted once — what removing every call would save.
                     "waiting_s": round(sum(c.waiting_s for c in written), 3),
-                    "turn_p50_s": round(timing.percentile([t.took_s for t in turns], 0.50), 3),
-                    "turn_p95_s": round(timing.percentile([t.took_s for t in turns], 0.95), 3),
+                    "turn_p50_s": round(
+                        timing.percentile([t.took_s for t in turns], 0.50), 3
+                    ),
+                    "turn_p95_s": round(
+                        timing.percentile([t.took_s for t in turns], 0.95), 3
+                    ),
                     "calls": len(calls),
                     "calls_total_s": round(sum(call.seconds for call in calls), 3),
                     "roles": {
                         role: {
                             **stats.as_dict(),
                             "share_of_turn_time": (
-                                round(stats.total_s / turn_total, 4) if turn_total else None
+                                round(stats.total_s / turn_total, 4)
+                                if turn_total
+                                else None
                             ),
                         }
                         for role, stats in timing.summarise(calls).items()
@@ -539,9 +578,11 @@ class Recorder:
 class TestTranscript:
     """The handle a single test writes through."""
 
-    __slots__ = ("_conversation", "_t0", "_previous", "_timeline")
+    __slots__ = ("_conversation", "_previous", "_t0", "_timeline")
 
-    def __init__(self, conversation: Conversation, timeline: timing.Timeline | None = None) -> None:
+    def __init__(
+        self, conversation: Conversation, timeline: timing.Timeline | None = None
+    ) -> None:
         self._conversation = conversation
         self._t0 = self._previous = time.monotonic()
         # Provider calls are drained per exchange, so each turn carries the calls
@@ -586,7 +627,9 @@ class TestTranscript:
                 reply=reply,
                 took_s=round(now - self._previous, 3),
                 at_s=round(now - self._t0, 3),
-                calls=[call.as_dict() for call in self._timeline.drain()] if self._timeline else [],
+                calls=[call.as_dict() for call in self._timeline.drain()]
+                if self._timeline
+                else [],
             )
         )
         self._previous = now

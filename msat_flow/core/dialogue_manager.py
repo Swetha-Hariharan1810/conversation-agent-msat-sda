@@ -120,7 +120,7 @@ class DialogueManagerMixin:
     _pending_intents: list[dict]
     spec: SurveySpec
 
-    def capture_and_triage(self, decision) -> None:
+    def capture_and_triage(self, decision, *, slot: str = "") -> None:
         """Record corrections and secondary requests from one extraction result."""
         if decision is None:
             return
@@ -129,7 +129,11 @@ class DialogueManagerMixin:
         for target in getattr(decision, "corrections", None) or {}:
             intents = add_intent(
                 intents,
-                PendingIntent(kind=IntentKind.CORRECTION.value, raw_text=f"correct {target}", target=target),
+                PendingIntent(
+                    kind=IntentKind.CORRECTION.value,
+                    raw_text=f"correct {target}",
+                    target=target,
+                ),
             )
 
         for raised in getattr(decision, "secondary_intents", None) or []:
@@ -139,7 +143,14 @@ class DialogueManagerMixin:
             kind = classify(raised)
             intents = add_intent(
                 intents,
-                PendingIntent(kind=kind.value, raw_text=text, status=_captured_as(kind).value),
+                PendingIntent(
+                    kind=kind.value,
+                    raw_text=text,
+                    status=_captured_as(kind).value,
+                    # Bind clarifications to the slot being asked so only that
+                    # slot's re-ask closes them, not a retry of a different question.
+                    target=slot if kind is IntentKind.CLARIFICATION else None,
+                ),
             )
 
         self._pending_intents = intents
@@ -150,35 +161,36 @@ class DialogueManagerMixin:
         if not fresh:
             return ""
         self._pending_intents = mark(
-            self._pending_intents, kinds=ACK_ONLY_KINDS, status=IntentStatus.ACKNOWLEDGED
+            self._pending_intents,
+            kinds=ACK_ONLY_KINDS,
+            status=IntentStatus.ACKNOWLEDGED,
         )
         return self.spec.policy.line("side_request_ack")
 
-    def resolve_clarifications(self) -> None:
-        """Close the questions about the question, once the question goes out again.
+    def resolve_clarifications(self, *, slot: str) -> None:
+        """Close clarifications raised for ``slot``, once that question goes out again.
 
-        "Sorry, what was that?" and "what counts as a resource?" are answered by
-        the caller putting the question again — which is what this turn is doing
-        when it calls this. Before, they sat OPEN for the rest of the call and
-        were reported at the end as member requests nobody had dealt with, about
-        a question that was re-read to them thirty seconds later.
-
-        Only the turn that re-puts the question closes them. A clarifying
-        question asked alongside an answer, where the call moves on to the next
-        question instead, is left open on purpose: nobody read anything back to
-        that member, and a report that says so is the useful one.
+        Only clarifications tagged to the slot being re-asked are resolved.
+        A clarification raised for a different slot that happens to still be open
+        is left untouched: its question has not been re-read.
         """
-        self._pending_intents = mark(
-            self._pending_intents,
-            kinds=frozenset({IntentKind.CLARIFICATION.value}),
-            status=IntentStatus.RESOLVED,
-        )
+        self._pending_intents = [
+            {**intent, "status": IntentStatus.RESOLVED.value}
+            if (
+                intent.get("kind") == IntentKind.CLARIFICATION.value
+                and intent.get("status") == IntentStatus.OPEN.value
+                and intent.get("target") == slot
+            )
+            else intent
+            for intent in self._pending_intents
+        ]
 
     def resolve_intents(self, *, target: str) -> None:
         """Mark corrections for ``target`` resolved once the new answer is recorded."""
         self._pending_intents = [
             {**intent, "status": IntentStatus.RESOLVED.value}
-            if intent.get("kind") == IntentKind.CORRECTION.value and intent.get("target") == target
+            if intent.get("kind") == IntentKind.CORRECTION.value
+            and intent.get("target") == target
             else intent
             for intent in self._pending_intents
         ]

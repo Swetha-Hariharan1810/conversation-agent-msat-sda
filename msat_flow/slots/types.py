@@ -15,13 +15,13 @@ __all__ = [
     "Option",
     "SlotSpec",
     "SlotType",
+    "critical_slots",
+    "describe",
+    "is_critical",
+    "option_labels",
+    "options",
     "slot_spec",
     "slot_type",
-    "is_critical",
-    "describe",
-    "options",
-    "option_labels",
-    "critical_slots",
 ]
 
 

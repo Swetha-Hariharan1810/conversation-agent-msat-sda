@@ -7,6 +7,7 @@ so a checkpointer can resume a call mid-flight.
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from langgraph.graph import END, StateGraph
@@ -15,6 +16,17 @@ from langgraph.types import Command, interrupt
 from .agents.survey_agent import MsatSurveyAgent, _last_message
 from .llm.client import LLMClient
 from .state import SurveyState
+
+# One shared client so the underlying httpx connection pool and keep-alive
+# connections are reused across turns instead of being rebuilt every call.
+_llm_client = LLMClient()
+
+# langgraph-api imports this module in an async context, so schedule a dummy
+# 1-token call immediately — TCP+TLS is established before any real call arrives.
+try:
+    asyncio.get_running_loop().create_task(_llm_client.warmup())
+except RuntimeError:
+    pass  # imported outside an async context (tests, CLI); first call pays TCP cost
 
 
 async def call_workflow(state: SurveyState) -> dict[str, Any]:
@@ -25,7 +37,7 @@ async def call_workflow(state: SurveyState) -> dict[str, Any]:
     exercised end to end without a provider.
     """
     agent = MsatSurveyAgent.from_state(state)
-    agent.client = None if state.get("offline") else LLMClient()
+    agent.client = None if state.get("offline") else _llm_client
     return await agent.execute(state)
 
 
@@ -43,7 +55,10 @@ def human_node(state: SurveyState):
     reply = interrupt(prompt)
     return Command(
         goto="call_workflow",
-        update={"is_interrupt": False, "messages": [{"role": "user", "content": str(reply)}]},
+        update={
+            "is_interrupt": False,
+            "messages": [{"role": "user", "content": str(reply)}],
+        },
     )
 
 

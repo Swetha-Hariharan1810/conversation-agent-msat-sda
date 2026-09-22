@@ -40,17 +40,20 @@ class DeadProvider:
 @pytest.mark.parametrize("row", GUARDS, ids=[row["id"] for row in GUARDS])
 async def test_patterns_decide_when_the_provider_is_down(row):
     agent = MsatSurveyAgent(client=DeadProvider())
-    outcome = await agent.check_guards({"ambiguous_counts": {}}, row["member"], row.get("last_agent", ""))
+    outcome = await agent.check_guards(
+        {"ambiguous_counts": {}}, row["member"], row.get("last_agent", "")
+    )
     assert outcome.kind == match_patterns(row["member"]), (
-        f"\nscenario : {row['id']}"
-        f"\nwith the provider down the patterns alone decide the outcome"
+        f"\nscenario : {row['id']}\nwith the provider down the patterns alone decide the outcome"
     )
 
 
 async def test_the_provider_being_down_never_ends_the_call():
     """A failed guard degrades. Reading a turn is allowed to end a call; this is not."""
     agent = MsatSurveyAgent(client=DeadProvider())
-    outcome = await agent.check_guards({"ambiguous_counts": {}}, "yes, a few of the articles", "")
+    outcome = await agent.check_guards(
+        {"ambiguous_counts": {}}, "yes, a few of the articles", ""
+    )
     assert outcome.kind == "" and not outcome.handled
 
 
@@ -61,9 +64,13 @@ def test_the_safeguarding_floor_covers_what_the_fallback_must_never_miss():
     and whether or not it can be reached, wording this plain fires the guard.
     """
     plain = [
-        row for row in GUARDS if row["expect_call"] == SAFEGUARDING and match_patterns(row["member"])
+        row
+        for row in GUARDS
+        if row["expect_call"] == SAFEGUARDING and match_patterns(row["member"])
     ]
-    assert plain, "no scenario covers safeguarding wording the fallback can catch on its own"
+    assert plain, (
+        "no scenario covers safeguarding wording the fallback can catch on its own"
+    )
 
 
 def test_the_fallback_misses_are_written_down():

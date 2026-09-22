@@ -15,7 +15,7 @@ Composition — which optional sections appear, and in what order — stays in
 
 from __future__ import annotations
 
-from functools import lru_cache
+from functools import cache, lru_cache
 from pathlib import Path
 from string import Formatter
 
@@ -38,7 +38,7 @@ CONTRACT: dict[str, frozenset[str]] = {
     "detect_guards.user": frozenset({"last_agent", "member"}),
     # Reading one member turn.
     "extract_turn.system": frozenset(),
-    "extract_turn.user": frozenset({"slots", "last_agent", "member"}),
+    "extract_turn.user": frozenset({"slots", "last_agent", "member", "progress"}),
     # Saying one line.
     "speak_line.system": frozenset(),
     "speak_line.user": frozenset({"goal", "sections"}),
@@ -47,6 +47,7 @@ CONTRACT: dict[str, frozenset[str]] = {
     "speak_line.options": frozenset({"options"}),
     "speak_line.values": frozenset({"values"}),
     "speak_line.context": frozenset({"member"}),
+    "speak_line.progress": frozenset({"progress"}),
     "speak_line.acknowledge": frozenset({"ack"}),
     "speak_line.retry": frozenset({"slot", "reason"}),
     # Separate from the retry wording because it is not always true. A question
@@ -73,16 +74,20 @@ def placeholders(template: str) -> frozenset[str]:
     return frozenset(field for _, field, _, _ in Formatter().parse(template) if field)
 
 
-@lru_cache(maxsize=None)
+@cache
 def load(name: str) -> str:
     """The prompt's text, validated against its declared contract."""
     if name not in CONTRACT:
-        raise PromptError(f"unknown prompt {name!r}; prompts/ declares {sorted(CONTRACT)}")
+        raise PromptError(
+            f"unknown prompt {name!r}; prompts/ declares {sorted(CONTRACT)}"
+        )
     path = path_for(name)
     try:
         text = path.read_text(encoding="utf-8").rstrip("\n")
     except FileNotFoundError as exc:
-        raise PromptError(f"prompt {name!r} is declared but {path.name} does not exist") from exc
+        raise PromptError(
+            f"prompt {name!r} is declared but {path.name} does not exist"
+        ) from exc
     if not text.strip():
         raise PromptError(f"prompt {name!r} is empty; the model would be sent nothing")
 
@@ -108,7 +113,9 @@ def render(name: str, **values: object) -> str:
     supplied = frozenset(values)
     declared = CONTRACT[name]
     if supplied != declared:
-        raise PromptError(f"prompt {name!r} takes {sorted(declared)}, got {sorted(supplied)}")
+        raise PromptError(
+            f"prompt {name!r} takes {sorted(declared)}, got {sorted(supplied)}"
+        )
     return template.format(**values)
 
 
@@ -120,7 +127,8 @@ def personas() -> dict[str, str]:
     no code changes, and ``scripts/live_eval.py`` picks it up by name.
     """
     found = {
-        path.stem: path.read_text(encoding="utf-8").strip() for path in sorted(PERSONA_DIR.glob(f"*{SUFFIX}"))
+        path.stem: path.read_text(encoding="utf-8").strip()
+        for path in sorted(PERSONA_DIR.glob(f"*{SUFFIX}"))
     }
     empty = sorted(name for name, text in found.items() if not text)
     if empty:

@@ -43,7 +43,10 @@ class SignalsMixin:
             "active_agent": self.AGENT_NAME,
             "last_agent_signal": {"agent": self.AGENT_NAME, "signal": "complete"},
             "metadata_events": [
-                {"eventType": "AgentCallEvent", "data": {"eventName": "AgentCallEnded", "detail": "complete"}}
+                {
+                    "eventType": "AgentCallEvent",
+                    "data": {"eventName": "AgentCallEnded", "detail": "complete"},
+                }
             ],
             **updates,
         }
@@ -69,7 +72,11 @@ class SignalsMixin:
             "phase": "done",
             "active_agent": self.AGENT_NAME,
             "escalation_reason": reason,
-            "last_agent_signal": {"agent": self.AGENT_NAME, "signal": "transfer", "reason": reason},
+            "last_agent_signal": {
+                "agent": self.AGENT_NAME,
+                "signal": "transfer",
+                "reason": reason,
+            },
             "metadata_events": [
                 {
                     "eventType": "AgentCallEvent",

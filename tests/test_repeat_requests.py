@@ -41,7 +41,11 @@ SLOT = "reviewed_resources"
 PAYLOAD = {
     "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
     "call_context": {"call_id": "repeat-test", "language": "en-US"},
-    "policyholder": {"first_name": "Margaret", "last_name": "Ellison", "risk_tier": "high"},
+    "policyholder": {
+        "first_name": "Margaret",
+        "last_name": "Ellison",
+        "risk_tier": "high",
+    },
 }
 
 REPEAT = "Sorry, could you say that again?"
@@ -56,7 +60,10 @@ def _state(*, awaiting: str = SLOT, member: str = REPEAT) -> dict:
     return {
         **initial_state(PAYLOAD),
         "messages": [
-            {"role": "assistant", "content": "Were you able to review any of the program resources?"},
+            {
+                "role": "assistant",
+                "content": "Were you able to review any of the program resources?",
+            },
             {"role": "user", "content": member},
         ],
         "identity": "confirmed",
@@ -72,7 +79,8 @@ def _asks_back(**overrides) -> TurnDecision:
         event_type=EventType.ANSWERED_WITH_REQUEST,
         secondary_intents=[
             SecondaryIntent(
-                text="asked us to repeat the question", kind=SecondaryIntentKind.ABOUT_THE_SURVEY
+                text="asked us to repeat the question",
+                kind=SecondaryIntentKind.ABOUT_THE_SURVEY,
             )
         ],
     )
@@ -83,7 +91,11 @@ def _asks_back(**overrides) -> TurnDecision:
 
 async def _turn(spec, decision: TurnDecision, state: dict | None = None):
     """One turn through the real agent, with the extractor scripted."""
-    chat = Chat(delays={role: 0.0 for role in timing.ROLES}, guard=GuardAssessment(), decision=decision)
+    chat = Chat(
+        delays=dict.fromkeys(timing.ROLES, 0.0),
+        guard=GuardAssessment(),
+        decision=decision,
+    )
     agent = MsatSurveyAgent(client=provider(chat), spec=spec)
     result = await agent.run(state if state is not None else _state())
     return agent, result, chat
@@ -107,7 +119,7 @@ async def test_the_ask_count_still_moves(spec):
     """Unchanged on purpose. Putting the question again IS another ask, and the
     backstop in ``run`` that counts them is what stops a question going out for
     ever. Only the retry budget is what a question back must not spend."""
-    agent, result, _ = await _turn(spec, _asks_back())
+    _agent, result, _ = await _turn(spec, _asks_back())
 
     assert result.get("ask_counts", {}).get(SLOT) == 1
 
@@ -140,7 +152,9 @@ async def test_an_unclear_answer_still_spends_one(spec):
     """The other side of the branch. A reply that went at the question and missed
     is a failed attempt, and must stay one — the budget exists for exactly this."""
     agent, _, _ = await _turn(
-        spec, TurnDecision(event_type=EventType.AMBIGUOUS), _state(member="Oh, I don't know really.")
+        spec,
+        TurnDecision(event_type=EventType.AMBIGUOUS),
+        _state(member="Oh, I don't know really."),
     )
 
     assert agent.slot(SLOT).attempt_count == 1
@@ -183,21 +197,25 @@ async def test_the_question_goes_out_with_retry_context_at_all(spec):
 
     spoken = chat.sent(timing.GENERATE)[-1]
     assert "Ask again" in spoken, "the retry wording was never sent to the generator"
-    assert "Attempt 0" not in spoken, "the attempt counter was rendered from an unspent budget"
+    assert "Attempt 0" not in spoken, (
+        "the attempt counter was rendered from an unspent budget"
+    )
 
 
 # ── ordering against the branches around it ──────────────────────────────
 
 
 async def test_declining_and_asking_in_one_breath_is_settled_not_retried(spec):
-    """"I'd rather not, and who did you say you were with?" — the refusal wins.
+    """ "I'd rather not, and who did you say you were with?" — the refusal wins.
 
     Re-asking would talk over an answer the member has already given about the
     survey itself.
     """
     agent, result, _ = await _turn(spec, _asks_back(declines_question=True))
 
-    assert SLOT in (result.get("declined") or []), "a refusal was retried instead of settled"
+    assert SLOT in (result.get("declined") or []), (
+        "a refusal was retried instead of settled"
+    )
     assert agent.slot(SLOT).attempt_count == 0
 
 
@@ -209,7 +227,7 @@ async def test_an_answer_the_slot_rejected_keeps_its_own_reason(spec):
     never counts against anything.
     """
     decision = _asks_back(values={SLOT: "somewhere in the middle"})
-    agent, _, chat = await _turn(spec, decision, _state(awaiting="overall_experience"))
+    _agent, _, chat = await _turn(spec, decision, _state(awaiting="overall_experience"))
 
     assert "asked us something back" not in chat.sent(timing.GENERATE)[-1]
 

@@ -43,7 +43,11 @@ from .live.transcript import TestTranscript as Transcript
 PAYLOAD = {
     "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
     "call_context": {"call_id": "timing-test", "language": "en-US"},
-    "policyholder": {"first_name": "Margaret", "last_name": "Ellison", "risk_tier": "high"},
+    "policyholder": {
+        "first_name": "Margaret",
+        "last_name": "Ellison",
+        "risk_tier": "high",
+    },
 }
 
 GUARD_DELAY = DELAYS[timing.GUARD]
@@ -53,7 +57,10 @@ GENERATE_DELAY = DELAYS[timing.GENERATE]
 def _state(member: str, *, awaiting: str) -> dict:
     return {
         **initial_state(PAYLOAD),
-        "messages": [{"role": "assistant", "content": "…"}, {"role": "user", "content": member}],
+        "messages": [
+            {"role": "assistant", "content": "…"},
+            {"role": "user", "content": member},
+        ],
         "identity": "confirmed",
         "consent": "granted",
         "survey_started": True,
@@ -96,7 +103,9 @@ async def test_a_failed_call_is_still_timed(spec):
 
     guard = next(call for call in timeline.calls if call.role == timing.GUARD)
     assert not guard.ok, "a call that raised was recorded as though it had worked"
-    assert guard.seconds >= GUARD_DELAY, "a failed call must carry the time it burned before failing"
+    assert guard.seconds >= GUARD_DELAY, (
+        "a failed call must carry the time it burned before failing"
+    )
 
 
 async def test_nothing_is_measured_when_nobody_is_collecting(spec):
@@ -105,7 +114,9 @@ async def test_nothing_is_measured_when_nobody_is_collecting(spec):
     await _turn(spec, client)
 
     assert timing.active() is None, "a collector outlived the block that installed it"
-    assert len(client._chat.asked) == 3, "the turn made no calls at all; this test would prove nothing"
+    assert len(client._chat.asked) == 3, (
+        "the turn made no calls at all; this test would prove nothing"
+    )
 
 
 async def test_collecting_stops_at_the_end_of_its_block(spec):
@@ -148,7 +159,9 @@ async def test_the_transcript_attributes_each_turns_calls_to_that_turn(spec):
     first = conversation.exchanges[0]
     # Overlap counted once, so what was waited for is strictly below what the
     # provider spent: the guard call runs inside the reading's wait.
-    assert 0 < first.waiting_s < first.calls_s, "the concurrent calls were counted as sequential"
+    assert 0 < first.waiting_s < first.calls_s, (
+        "the concurrent calls were counted as sequential"
+    )
 
 
 async def test_the_run_ends_with_a_per_role_baseline(spec, tmp_path, monkeypatch):
@@ -167,13 +180,17 @@ async def test_the_run_ends_with_a_per_role_baseline(spec, tmp_path, monkeypatch
     directory = recorder.finish()
 
     transcript = written.read_text(encoding="utf-8")
-    assert "share of turn time" in transcript, "a transcript must say where its time went, by role"
+    assert "share of turn time" in transcript, (
+        "a transcript must say where its time went, by role"
+    )
     assert "- calls: guard" in transcript, "each turn must list the calls it made"
 
     index = (directory / "index.md").read_text(encoding="utf-8")
     assert "## Latency baseline" in index
     for role in timing.ROLES:
-        assert f"| {role} |" in index, f"{role} is missing from the run's baseline table"
+        assert f"| {role} |" in index, (
+            f"{role} is missing from the run's baseline table"
+        )
 
     baseline = json.loads((directory / "baseline.json").read_text(encoding="utf-8"))
     assert baseline["calls"] == 3
@@ -214,7 +231,9 @@ def test_a_role_that_made_no_calls_is_absent_rather_than_zero():
     A row of zeroes reads like a call that was fast, which is the opposite of
     what happened.
     """
-    stats = timing.summarise([timing.Call(timing.GUARD, 0.5), timing.Call(timing.GUARD, 1.5)])
+    stats = timing.summarise(
+        [timing.Call(timing.GUARD, 0.5), timing.Call(timing.GUARD, 1.5)]
+    )
     assert set(stats) == {timing.GUARD}
     assert stats[timing.GUARD].count == 2
     assert stats[timing.GUARD].total_s == 2.0

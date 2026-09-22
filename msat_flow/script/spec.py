@@ -16,11 +16,12 @@ records plausible-looking data nobody can trust.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import StrEnum
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 SPEC_FILE = DATA_DIR / "msat_spec.json"
@@ -64,7 +65,9 @@ REQUIRED_LINES = frozenset(
 # Lines whose wording is a commitment to the member, not a courtesy. These say
 # what is about to happen to them; an agent paraphrasing "someone will join the
 # call" into something vaguer is a promise quietly withdrawn.
-VERBATIM_ONLY_LINES = frozenset({"safeguarding_handoff", "representative_handoff", "do_not_call"})
+VERBATIM_ONLY_LINES = frozenset(
+    {"safeguarding_handoff", "representative_handoff", "do_not_call"}
+)
 
 
 class SlotType(StrEnum):
@@ -134,8 +137,14 @@ class Condition:
     equals: str = ""
     accepted: tuple[str, ...] = ()
 
-    def holds(self, *, answers: dict[str, str], payload_lookup: Callable[[str], str]) -> bool:
-        value = (answers.get(self.slot, "") if self.source == "answer" else payload_lookup(self.slot)) or ""
+    def holds(
+        self, *, answers: dict[str, str], payload_lookup: Callable[[str], str]
+    ) -> bool:
+        value = (
+            answers.get(self.slot, "")
+            if self.source == "answer"
+            else payload_lookup(self.slot)
+        ) or ""
         if self.equals:
             return value == self.equals
         return value in self.accepted
@@ -264,7 +273,9 @@ class SurveySpec:
         try:
             return self.slots[name]
         except KeyError as exc:
-            raise SpecError(f"unknown slot {name!r}; the script declares {sorted(self.slots)}") from exc
+            raise SpecError(
+                f"unknown slot {name!r}; the script declares {sorted(self.slots)}"
+            ) from exc
 
     @property
     def question_slots(self) -> tuple[str, ...]:
@@ -327,8 +338,12 @@ def _condition(slot_owner: str, raw: dict | None) -> Condition | None:
             f"turn {slot_owner!r} condition on {body['slot']!r} declares neither 'equals' nor 'in'"
         )
     if equals and accepted:
-        raise SpecError(f"turn {slot_owner!r} condition on {body['slot']!r} declares both 'equals' and 'in'")
-    return Condition(source=source, slot=str(body["slot"]), equals=equals, accepted=accepted)
+        raise SpecError(
+            f"turn {slot_owner!r} condition on {body['slot']!r} declares both 'equals' and 'in'"
+        )
+    return Condition(
+        source=source, slot=str(body["slot"]), equals=equals, accepted=accepted
+    )
 
 
 def _turn(raw: dict) -> Turn:
@@ -377,7 +392,9 @@ def _slot_spec(name: str, raw: dict) -> SlotSpec:
     if not isinstance(raw["critical"], bool):
         raise SpecError(f"slot {name!r} 'critical' must be true or false")
     if not str(raw["description"]).strip():
-        raise SpecError(f"slot {name!r} has an empty description; the extractor needs one line")
+        raise SpecError(
+            f"slot {name!r} has an empty description; the extractor needs one line"
+        )
     return SlotSpec(
         name=name,
         type=kind,
@@ -392,18 +409,27 @@ def _payload_binding(slot: str, raw: dict) -> PayloadBinding:
     paths = tuple(raw.get("paths") or ())
     compose = tuple(raw.get("compose") or ())
     if not paths and not compose:
-        raise SpecError(f"payload binding {slot!r} declares neither 'paths' nor 'compose'")
+        raise SpecError(
+            f"payload binding {slot!r} declares neither 'paths' nor 'compose'"
+        )
     if compose and len(compose) < 2:
         raise SpecError(f"payload binding {slot!r} 'compose' needs at least two fields")
     return PayloadBinding(slot=slot, paths=paths, compose=compose)
 
 
 def _policy(raw: dict) -> CallPolicy:
-    counters = ("max_asks_per_slot", "max_consecutive_holds", "max_identity_asks", "max_consent_asks")
+    counters = (
+        "max_asks_per_slot",
+        "max_consecutive_holds",
+        "max_identity_asks",
+        "max_consent_asks",
+    )
     for name in counters:
         value = raw.get(name)
         if not isinstance(value, int) or isinstance(value, bool) or value < 1:
-            raise SpecError(f"policy {name!r} must be a positive integer, got {value!r}")
+            raise SpecError(
+                f"policy {name!r} must be a positive integer, got {value!r}"
+            )
     off_script = {
         name: _spoken_line(name, value)
         for name, value in (raw.get("off_script") or {}).items()
@@ -430,9 +456,13 @@ def _spoken_line(name: str, value: object) -> SpokenLine:
     elif isinstance(value, dict):
         text, goal = str(value.get("line") or ""), str(value.get("goal") or "")
     else:
-        raise SpecError(f"off-script line {name!r} must be a string or an object with 'line'")
+        raise SpecError(
+            f"off-script line {name!r} must be a string or an object with 'line'"
+        )
     if not text.strip():
-        raise SpecError(f"off-script line {name!r} is empty; the agent would fall silent")
+        raise SpecError(
+            f"off-script line {name!r} is empty; the agent would fall silent"
+        )
     if isinstance(value, dict) and "goal" in value and not goal.strip():
         raise SpecError(
             f"off-script line {name!r} declares an empty goal; drop it to speak the line as written"
@@ -463,7 +493,9 @@ def _validate_required_kinds(spec: SurveySpec) -> None:
 def _validate_goals(spec: SurveySpec) -> None:
     for turn in spec.agent_turns:
         if not turn.goal.strip():
-            raise SpecError(f"turn {turn.node!r} is spoken but has no goal in slot_map.json")
+            raise SpecError(
+                f"turn {turn.node!r} is spoken but has no goal in slot_map.json"
+            )
 
 
 def _validate_slots(spec: SurveySpec) -> None:
@@ -473,11 +505,15 @@ def _validate_slots(spec: SurveySpec) -> None:
     with no normaliser and no criticality; a declared slot nothing fills is dead
     weight that misleads the next reader into thinking it is collected.
     """
-    used = spec.all_slots() | {slot for turn in spec.turns for slot in turn.payload_slots}
+    used = spec.all_slots() | {
+        slot for turn in spec.turns for slot in turn.payload_slots
+    }
     declared = set(spec.slots)
     undeclared = sorted(used - declared)
     if undeclared:
-        raise SpecError(f"the script fills slot(s) with no declaration in slot_map.json: {undeclared}")
+        raise SpecError(
+            f"the script fills slot(s) with no declaration in slot_map.json: {undeclared}"
+        )
     orphans = sorted(declared - used - set(spec.payload_only_slots))
     if orphans:
         raise SpecError(
@@ -490,20 +526,26 @@ def _validate_payload_only(spec: SurveySpec) -> None:
         if name in spec.all_slots():
             raise SpecError(f"slot {name!r} is payload_only but a question asks for it")
         if name not in spec.payload:
-            raise SpecError(f"slot {name!r} is payload_only but slot_map.json binds no payload path for it")
+            raise SpecError(
+                f"slot {name!r} is payload_only but slot_map.json binds no payload path for it"
+            )
 
 
 def _validate_choices(spec: SurveySpec) -> None:
     for name, declared in spec.slots.items():
         if declared.type is not SlotType.CHOICE:
             if declared.options:
-                raise SpecError(f"slot {name!r} is {declared.type.value} but declares answer options")
+                raise SpecError(
+                    f"slot {name!r} is {declared.type.value} but declares answer options"
+                )
             continue
         if len(declared.options) < 2:
             raise SpecError(f"choice slot {name!r} declares fewer than two options")
         values = declared.option_values
         if len(set(values)) != len(values):
-            raise SpecError(f"choice slot {name!r} declares duplicate option values: {sorted(values)}")
+            raise SpecError(
+                f"choice slot {name!r} declares duplicate option values: {sorted(values)}"
+            )
 
 
 def _validate_printed_options(spec: SurveySpec) -> None:
@@ -524,7 +566,11 @@ def _validate_printed_options(spec: SurveySpec) -> None:
                     f"question {turn.node!r} prints options {list(turn.options)} but slot "
                     f"{turn.slot!r} declares {list(declared.option_labels)}"
                 )
-        elif declared.type is SlotType.YES_NO and turn.options and tuple(turn.options) != ("Yes", "No"):
+        elif (
+            declared.type is SlotType.YES_NO
+            and turn.options
+            and tuple(turn.options) != ("Yes", "No")
+        ):
             raise SpecError(
                 f"question {turn.node!r} fills yes/no slot"
                 f"{turn.slot!r} but prints options {list(turn.options)}"
@@ -535,7 +581,9 @@ def _validate_one_question_per_slot(spec: SurveySpec) -> None:
     for slot in spec.question_slots:
         asking = [turn.node for turn in spec.questions if slot in turn.slots]
         if len(asking) > 1:
-            raise SpecError(f"slot {slot!r} is asked for by more than one question: {asking}")
+            raise SpecError(
+                f"slot {slot!r} is asked for by more than one question: {asking}"
+            )
     for name, declared in spec.slots.items():
         if declared.critical and spec.question_for(name) is None:
             raise SpecError(f"slot {name!r} is critical but no question asks for it")
@@ -569,7 +617,11 @@ def _validate_conditions(spec: SurveySpec) -> None:
                     f"but that slot is not payload_only"
                 )
             wanted = (condition.equals,) if condition.equals else condition.accepted
-            allowed = target.option_values if target.type is SlotType.CHOICE else ("yes", "no")
+            allowed = (
+                target.option_values
+                if target.type is SlotType.CHOICE
+                else ("yes", "no")
+            )
             unknown = [value for value in wanted if value not in allowed]
             if unknown:
                 raise SpecError(
@@ -593,7 +645,9 @@ def _schema_declares(schema: dict, path: str) -> bool:
 def _validate_payload_bindings(spec: SurveySpec, schema: dict) -> None:
     for slot, binding in spec.payload.items():
         if slot not in spec.slots:
-            raise SpecError(f"slot_map.json binds a payload path for undeclared slot {slot!r}")
+            raise SpecError(
+                f"slot_map.json binds a payload path for undeclared slot {slot!r}"
+            )
         for path in (*binding.paths, *binding.compose):
             if not _schema_declares(schema, path):
                 raise SpecError(
@@ -631,7 +685,10 @@ def build_spec(raw: dict, schema: dict) -> SurveySpec:
         source=dict(raw.get("source") or {}),
         turns=tuple(_turn(item) for item in raw["turns"]),
         slots={name: _slot_spec(name, value) for name, value in raw["slots"].items()},
-        payload={slot: _payload_binding(slot, value) for slot, value in raw["payload"].items()},
+        payload={
+            slot: _payload_binding(slot, value)
+            for slot, value in raw["payload"].items()
+        },
         policy=_policy(raw["policy"]),
     )
     _validate(spec, schema)

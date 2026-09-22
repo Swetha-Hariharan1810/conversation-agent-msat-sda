@@ -40,7 +40,11 @@ from .live.transcript import Exchange, _overlapping
 PAYLOAD = {
     "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
     "call_context": {"call_id": "concurrency-test", "language": "en-US"},
-    "policyholder": {"first_name": "Margaret", "last_name": "Ellison", "risk_tier": "high"},
+    "policyholder": {
+        "first_name": "Margaret",
+        "last_name": "Ellison",
+        "risk_tier": "high",
+    },
 }
 
 # One delay for every role, so "these two overlapped" is a claim about when the
@@ -57,7 +61,10 @@ PLAIN = "yes, a few of the articles"
 def _state(member: str = PLAIN, *, awaiting: str = "reviewed_resources") -> dict:
     return {
         **initial_state(PAYLOAD),
-        "messages": [{"role": "assistant", "content": "…"}, {"role": "user", "content": member}],
+        "messages": [
+            {"role": "assistant", "content": "…"},
+            {"role": "user", "content": member},
+        ],
         "identity": "confirmed",
         "consent": "granted",
         "survey_started": True,
@@ -133,7 +140,9 @@ async def test_the_line_the_agent_speaks_still_waits_for_both(spec):
         ("asks_not_to_be_called", guards.DO_NOT_CALL),
     ],
 )
-async def test_a_turn_the_guard_fires_on_is_never_read_as_survey_content(spec, field, kind):
+async def test_a_turn_the_guard_fires_on_is_never_read_as_survey_content(
+    spec, field, kind
+):
     """The reading happened. It must be as though it had not.
 
     The scripted extractor returns a perfectly good answer to the outstanding
@@ -151,8 +160,12 @@ async def test_a_turn_the_guard_fires_on_is_never_read_as_survey_content(spec, f
     agent, result, _ = await _run(spec, chat)
 
     assert timing.EXTRACT in chat.asked, "this test proves nothing if nothing was read"
-    assert not agent.answer("reviewed_resources"), f"{kind}: the discarded reading was recorded"
-    assert not agent.answer("would_recommend"), f"{kind}: a discarded correction was applied"
+    assert not agent.answer("reviewed_resources"), (
+        f"{kind}: the discarded reading was recorded"
+    )
+    assert not agent.answer("would_recommend"), (
+        f"{kind}: a discarded correction was applied"
+    )
     assert not agent._answers, f"{kind}: {agent._answers} survived a guard turn"
     assert not agent._pending_intents, f"{kind}: the discarded turn was triaged"
     assert "declined" not in result, f"{kind}: a discarded reading touched declined"
@@ -165,10 +178,17 @@ async def test_a_hold_that_runs_out_ends_the_call_without_reading_the_turn(spec)
     """`HOLD_EXHAUSTED` is decided by the guard and the reading is discarded with it."""
     state = _state()
     state["ambiguous_counts"] = {"__holds__": spec.policy.max_consecutive_holds}
-    agent, result, _ = await _run(spec, _chat(guard=GuardAssessment(asks_to_hold=True)), state)
+    agent, result, _ = await _run(
+        spec, _chat(guard=GuardAssessment(asks_to_hold=True)), state
+    )
 
-    assert result["output_data"]["call_outcome"]["disposition"] == "ended_early"
-    assert not agent._answers, "a turn that ran the holds out was still filed as an answer"
+    assert (
+        result["output_data"]["call_outcome"]["disposition"]
+        == "representative_requested"
+    )
+    assert not agent._answers, (
+        "a turn that ran the holds out was still filed as an answer"
+    )
 
 
 # ── the error asymmetry ──────────────────────────────────────────────────
@@ -181,7 +201,9 @@ async def test_a_reading_that_fails_still_ends_the_call(spec):
     outcome = result["output_data"]["call_outcome"]
     assert outcome["disposition"] == "ended_early"
     assert "could not process the turn" in outcome["reason"], outcome["reason"]
-    assert agent.slot("reviewed_resources").attempt_count == 0, "a failed reading burned a retry"
+    assert agent.slot("reviewed_resources").attempt_count == 0, (
+        "a failed reading burned a retry"
+    )
 
 
 async def test_a_reading_that_fails_on_a_guard_turn_is_swallowed(spec):
@@ -191,7 +213,9 @@ async def test_a_reading_that_fails_on_a_guard_turn_is_swallowed(spec):
     guard fires on — which could not happen when it ran second. Ending the call
     over it would hang up on somebody who just asked for help.
     """
-    chat = _chat(guard=GuardAssessment(asks_for_representative=True), raises={timing.EXTRACT})
+    chat = _chat(
+        guard=GuardAssessment(asks_for_representative=True), raises={timing.EXTRACT}
+    )
     _, result, _ = await _run(spec, chat)
 
     outcome = result["output_data"]["call_outcome"]
@@ -219,7 +243,9 @@ async def test_a_guard_call_that_fails_on_a_safeguarding_turn_still_fires(spec):
         spec, _chat(raises={timing.GUARD}), _state("I don't want to live any more")
     )
 
-    assert result["output_data"]["call_outcome"]["disposition"] == "safeguarding_handoff"
+    assert (
+        result["output_data"]["call_outcome"]["disposition"] == "safeguarding_handoff"
+    )
 
 
 # ── nothing is launched that would not have run ──────────────────────────
@@ -228,7 +254,9 @@ async def test_a_guard_call_that_fails_on_a_safeguarding_turn_still_fires(spec):
 async def test_a_date_and_time_turn_never_reaches_the_extractor(spec):
     """Free text the call captures directly — no reading call, before or after."""
     chat = _chat()
-    _, result, _ = await _run(spec, chat, _state("Thursday afternoon", awaiting="reschedule_datetime"))
+    _, result, _ = await _run(
+        spec, chat, _state("Thursday afternoon", awaiting="reschedule_datetime")
+    )
 
     assert timing.EXTRACT not in chat.asked, (
         f"the concurrent path launched a call the sequential one never made: {chat.asked}"
@@ -298,7 +326,8 @@ def test_the_transcript_only_claims_calls_ran_together_when_they_did(spans, toge
         caller="",
         member="",
         calls=[
-            timing.Call(role, end - start, at=start).as_dict() for role, start, end in spans
+            timing.Call(role, end - start, at=start).as_dict()
+            for role, start, end in spans
         ],
     )
     assert _overlapping(exchange) == together

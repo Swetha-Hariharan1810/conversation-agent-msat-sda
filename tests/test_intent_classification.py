@@ -25,7 +25,12 @@ import pytest
 
 from msat_flow.agents.survey_agent import MsatSurveyAgent
 from msat_flow.core.dialogue_manager import classify
-from msat_flow.core.pending_intents import ACK_ONLY_KINDS, IntentKind, IntentStatus, PendingIntent
+from msat_flow.core.pending_intents import (
+    ACK_ONLY_KINDS,
+    IntentKind,
+    IntentStatus,
+    PendingIntent,
+)
 from msat_flow.llm.schema import SecondaryIntent, SecondaryIntentKind, TurnDecision
 from msat_flow.script.spec import load_spec
 from msat_flow.state import initial_state
@@ -41,7 +46,9 @@ def agent(spec) -> MsatSurveyAgent:
     return MsatSurveyAgent(client=None, spec=spec)
 
 
-def _raised(text: str, kind: SecondaryIntentKind = SecondaryIntentKind.UNSPECIFIED) -> SecondaryIntent:
+def _raised(
+    text: str, kind: SecondaryIntentKind = SecondaryIntentKind.UNSPECIFIED
+) -> SecondaryIntent:
     return SecondaryIntent(text=text, kind=kind)
 
 
@@ -90,7 +97,9 @@ def test_a_remark_that_happens_to_contain_a_keyword_is_still_the_model_s_call():
     """The other direction. "The policy of calling in the evening" is not member
     services, and a keyword list has no way to know that. The model's answer
     wins over the wording, not the other way round."""
-    intent = _raised("said our policy of ringing at teatime is a nuisance", SecondaryIntentKind.ASIDE)
+    intent = _raised(
+        "said our policy of ringing at teatime is a nuisance", SecondaryIntentKind.ASIDE
+    )
 
     assert classify(intent) is IntentKind.OFF_TOPIC
 
@@ -105,7 +114,9 @@ def test_an_unlabelled_remark_falls_back_to_the_wording():
 def test_an_unlabelled_remark_the_wording_cannot_place_is_a_request():
     """The safe way to be wrong: something a person looks at, rather than
     something dropped in silence."""
-    assert classify(_raised("asked whether we ring everyone")) is IntentKind.SIDE_REQUEST
+    assert (
+        classify(_raised("asked whether we ring everyone")) is IntentKind.SIDE_REQUEST
+    )
 
 
 def test_a_bare_string_still_classifies():
@@ -123,9 +134,14 @@ def test_a_turn_that_raised_all_four_files_all_four(agent):
     agent.capture_and_triage(
         TurnDecision(
             secondary_intents=[
-                _raised("when is somebody ringing back about the bill", SecondaryIntentKind.MEMBER_SERVICES),
+                _raised(
+                    "when is somebody ringing back about the bill",
+                    SecondaryIntentKind.MEMBER_SERVICES,
+                ),
                 _raised("could you email me a copy", SecondaryIntentKind.REQUEST),
-                _raised("what counts as a resource", SecondaryIntentKind.ABOUT_THE_SURVEY),
+                _raised(
+                    "what counts as a resource", SecondaryIntentKind.ABOUT_THE_SURVEY
+                ),
                 _raised("her daughter has just arrived", SecondaryIntentKind.ASIDE),
             ]
         )
@@ -140,14 +156,20 @@ def test_a_turn_that_raised_all_four_files_all_four(agent):
 
 
 def test_an_empty_phrase_is_still_dropped(agent):
-    agent.capture_and_triage(TurnDecision(secondary_intents=[_raised("   ", SecondaryIntentKind.ASIDE)]))
+    agent.capture_and_triage(
+        TurnDecision(secondary_intents=[_raised("   ", SecondaryIntentKind.ASIDE)])
+    )
 
     assert agent._pending_intents == []
 
 
 def test_the_remark_is_kept_in_the_member_s_words(agent):
     agent.capture_and_triage(
-        TurnDecision(secondary_intents=[_raised(" her daughter is visiting ", SecondaryIntentKind.ASIDE)])
+        TurnDecision(
+            secondary_intents=[
+                _raised(" her daughter is visiting ", SecondaryIntentKind.ASIDE)
+            ]
+        )
     )
 
     assert agent._pending_intents[0]["raw_text"] == "her daughter is visiting"
@@ -170,19 +192,26 @@ def test_only_member_services_draws_the_one_line_there_is(agent):
         TurnDecision(
             secondary_intents=[
                 _raised("her daughter has just arrived", SecondaryIntentKind.ASIDE),
-                _raised("what counts as a resource", SecondaryIntentKind.ABOUT_THE_SURVEY),
+                _raised(
+                    "what counts as a resource", SecondaryIntentKind.ABOUT_THE_SURVEY
+                ),
             ]
         )
     )
 
-    assert not agent.side_request_ack(), "chit-chat was answered with the program-team line"
+    assert not agent.side_request_ack(), (
+        "chit-chat was answered with the program-team line"
+    )
 
 
 def test_member_services_does_draw_it(agent):
     agent.capture_and_triage(
         TurnDecision(
             secondary_intents=[
-                _raised("when is somebody ringing back about the bill", SecondaryIntentKind.MEMBER_SERVICES)
+                _raised(
+                    "when is somebody ringing back about the bill",
+                    SecondaryIntentKind.MEMBER_SERVICES,
+                )
             ]
         )
     )
@@ -203,9 +232,24 @@ def test_a_ledger_written_before_this_change_still_loads(spec):
     are still spelled the same still mean the same thing.
     """
     old = [
-        {"kind": "unsupported", "raw_text": "when is my premium due?", "target": None, "status": "open"},
-        {"kind": "side_request", "raw_text": "email me the results", "target": None, "status": "open"},
-        {"kind": "off_topic", "raw_text": "her daughter is visiting", "target": None, "status": "open"},
+        {
+            "kind": "unsupported",
+            "raw_text": "when is my premium due?",
+            "target": None,
+            "status": "open",
+        },
+        {
+            "kind": "side_request",
+            "raw_text": "email me the results",
+            "target": None,
+            "status": "open",
+        },
+        {
+            "kind": "off_topic",
+            "raw_text": "her daughter is visiting",
+            "target": None,
+            "status": "open",
+        },
         {
             "kind": "correction",
             "raw_text": "correct would_recommend",
@@ -237,7 +281,9 @@ def test_an_old_off_topic_intent_no_longer_takes_the_program_team_line(spec):
     state = {
         **initial_state({}),
         "pending_intents": [
-            PendingIntent(kind=IntentKind.OFF_TOPIC.value, raw_text="her daughter is visiting").to_dict()
+            PendingIntent(
+                kind=IntentKind.OFF_TOPIC.value, raw_text="her daughter is visiting"
+            ).to_dict()
         ],
     }
 

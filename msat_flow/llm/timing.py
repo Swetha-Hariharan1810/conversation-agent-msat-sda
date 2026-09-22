@@ -90,7 +90,7 @@ class Timeline:
     having to know anything about timing.
     """
 
-    __slots__ = ("calls", "started", "_drained")
+    __slots__ = ("_drained", "calls", "started")
 
     def __init__(self) -> None:
         self.calls: list[Call] = []
@@ -152,7 +152,12 @@ def measure(role: str) -> Iterator[None]:
         raise
     finally:
         timeline.add(
-            Call(role or UNLABELLED, time.perf_counter() - started, ok, started - timeline.started)
+            Call(
+                role or UNLABELLED,
+                time.perf_counter() - started,
+                ok,
+                started - timeline.started,
+            )
         )
 
 

@@ -76,6 +76,7 @@ _SAFEGUARDING = re.compile(
     r"kill(?:ing)? myself|end(?:ing)? my (?:own )?life|take (?:my|her|his) own life"
     r"|want(?:ed)? to die|wish(?:ed)? i (?:was|were) dead|better off dead"
     r"|don'?t want to (?:live|be here|go on|wake up|carry on)"
+    r"|(?:rather|would rather|honestly rather) not wake up"
     # "I can't go on" errs towards firing: a member who meant the survey rather
     # than their life gets a person on the call, which is recoverable. The other
     # way round is not.
@@ -88,9 +89,11 @@ _SAFEGUARDING = re.compile(
     r" (?:hits?|hit|hurts?|hurt|threatens?|threatened|shouts? at|locks? me|took my money|steals?)"
     r"|(?:i'?m|i am) (?:not safe|afraid of|frightened of|scared of) (?:him|her|them|my)"
     # medical emergency in progress
-    r"|i can'?t breathe|chest pain|i'?ve fallen|i have fallen|call an ambulance"
+    r"|i can'?t breathe|can'?t (?:seem to )?get (?:my|his|her|their) breath"
+    r"|chest pain|i'?ve fallen|i have fallen|call an ambulance"
+    r"|come over (?:all )?(?:funny|ill|faint|poorly)"
     r")",
-    re.I,
+    re.IGNORECASE,
 )
 
 # The member asking for a human. Every alternative needs an explicit request —
@@ -117,7 +120,7 @@ _REPRESENTATIVE_REQUEST = re.compile(
     r" (?:person|human|being|representative|agent)"
     r"|is there (?:a |an )?(?:real )?(?:person|human|someone|somebody) i (?:can|could)"
     r")",
-    re.I,
+    re.IGNORECASE,
 )
 
 # ── the rest ─────────────────────────────────────────────────────────────
@@ -132,10 +135,24 @@ _VOICEMAIL = re.compile(
     r"|record your message"
     r"|(?:reached|this is) the voice ?mail"
     r"|voice ?mail (?:box|of|system)"
+    r"|(?:forwarded|transferred) to voice ?mail"
     r"|(?:is |am )?not available to take your call"
     r"|unable to take your call"
     r"|please try (?:your call )?again later)",
-    re.I,
+    re.IGNORECASE,
+)
+
+# Subset of _VOICEMAIL that only a machine ever says. These override the model.
+# Availability phrases ("not available to take your call") are excluded because
+# a household member can say them; the model resolves that ambiguity.
+_VOICEMAIL_MACHINE = re.compile(
+    r"(?:after the (?:tone|beep)"
+    r"|at the (?:tone|beep)"
+    r"|record your message"
+    r"|(?:reached|this is) the voice ?mail"
+    r"|voice ?mail (?:box|of|system)"
+    r"|(?:forwarded|transferred) to voice ?mail)",
+    re.IGNORECASE,
 )
 
 # The member wants the calls to stop. This is not an unclear answer and must
@@ -144,11 +161,13 @@ _DO_NOT_CALL = re.compile(
     r"(?:take me off (?:your|the) (?:list|calling list)"
     r"|remove me from (?:your|the) (?:list|calling list|database)"
     r"|do ?n[o']?t call (?:me )?(?:again|any ?more|back)?"
+    r"|do ?n[o']?t ring (?:this number |me )?(?:again|any ?more)?"
     r"|stop calling (?:me|here)?"
+    r"|stop ringing (?:me|here)?"
     r"|no more calls"
     r"|do not call list"
     r"|unsubscribe)",
-    re.I,
+    re.IGNORECASE,
 )
 
 # The member stepping away. We wait rather than talking into an empty room.
@@ -156,10 +175,50 @@ _HOLD = re.compile(
     r"(?:hold on|hang on|one (?:moment|second|sec|minute)|just a (?:moment|second|sec|minute|tick)"
     r"|give me a (?:moment|second|sec|minute)|let me (?:get|grab|find|put|fetch)|bear with me"
     r"|(?:i'?ll be |be )right back|wait a (?:moment|second|minute))",
-    re.I,
+    re.IGNORECASE,
 )
 
 _HOLDS_KEY = "__holds__"
+
+# Broad vocabulary pre-screen used to skip the guard LLM call on clearly-safe turns.
+# Errs heavily toward inclusion for safeguarding words; a false positive just means
+# the LLM is called when it wasn't needed — the safe direction to be wrong.
+_GUARD_SIGNAL = re.compile(
+    r"(?:"
+    # Safeguarding-adjacent vocabulary — errs toward inclusion; a false positive
+    # just means the LLM is called unnecessarily, but a false negative misses harm.
+    r"\b(?:hurt|harm|die|dead|dying|kill|safe|afraid|scared|frighten|abuse|"
+    r"cope|breathe|breath|fell|fallen|chest|ambulance|"
+    r"can.?t\s+(?:go\s+on|carry\s+on|take\s+it|cope|breathe)|"
+    r"no\s+(?:point|reason)\s+(?:in|to)|nothing\s+(?:left|matters|feels)|"
+    r"not\s+much\s+left|sit\s+here\s+(?:most|all)\s+days|"
+    r"rather\s+not\s+wake\s+up|come\s+over\s+(?:all\s+)?(?:funny|ill|faint|poorly)|"
+    r"get\s+(?:my|his|her|their)\s+breath|"
+    r"takes?\s+(?:my|her|his)\s+(?:pension|benefits?|money|card|savings)|"
+    r"pension\s+card|shouts?\s+at\s+me|"
+    r"worth\s+(?:living|going\s+on|carrying\s+on))\b"
+    r"|"
+    # Representative request signals — includes indirect phrasings needing the LLM
+    r"\b(?:speak\s+to|talk\s+to|put\s+me\s+through|transfer\s+me|representative|"
+    r"real\s+(?:person|human)|live\s+(?:person|agent)|speak\s+with|talk\s+with|"
+    r"proper\s+conversation|chance\s+of\s+(?:having|speaking|talking)|"
+    r"conversation\s+with\s+somebody)\b"
+    r"|"
+    # Hold signals — includes oblique British idioms
+    r"\b(?:hold\s+on|hang\s+on|bear\s+with\s+me|one\s+(?:moment|second|sec|minute)|"
+    r"just\s+a\s+(?:moment|second|sec)|give\s+me\s+a\s+(?:moment|second)|"
+    r"i.?ll\s+be\s+right\s+back|two\s+ticks|kettle)\b"
+    r"|"
+    # DNC signals
+    r"\b(?:take\s+me\s+off|remove\s+me\s+from|stop\s+calling|stop\s+ringing|don.t\s+call\s+me|don.t\s+ring|"
+    r"no\s+more\s+calls|unsubscribe|off\s+(?:your|the)\s+list)\b"
+    r"|"
+    # Voicemail signals
+    r"\b(?:voicemail|voice\s+mail|leave\s+a\s+message|after\s+the\s+(?:tone|beep)|"
+    r"at\s+the\s+(?:tone|beep)|record\s+your\s+message)\b"
+    r")",
+    re.IGNORECASE,
+)
 
 # Guard outcomes the agent turns into a planned action, so the wording comes
 # from the spec and the turn is recorded like any other.
@@ -169,6 +228,8 @@ VOICEMAIL = "voicemail"
 HOLD = "hold"
 HOLD_EXHAUSTED = "hold_exhausted"
 DO_NOT_CALL = "do_not_call"
+# Member explicitly asked to end the survey mid-call (EventType.CLOSING).
+MEMBER_CLOSING = "member_closing"
 
 # Precedence, most urgent first, and the two ways of spotting each one. Both the
 # model's answer and the patterns are resolved through this single order, so
@@ -210,9 +271,11 @@ def resolve(assessment: GuardAssessment) -> str:
 class GuardOutcome:
     """What a guard decided. ``handled`` means the caller must return now."""
 
-    __slots__ = ("handled", "update", "kind")
+    __slots__ = ("handled", "kind", "update")
 
-    def __init__(self, handled: bool = False, update: dict | None = None, kind: str = ""):
+    def __init__(
+        self, handled: bool = False, update: dict | None = None, kind: str = ""
+    ):
         self.handled = handled
         self.update = update or {}
         self.kind = kind
@@ -227,7 +290,9 @@ class ConversationGuardsMixin:
         text = member_text or ""
         if not text.strip():
             return GuardOutcome()
-        return self._guard_outcome(state, await self.detect_guard(text, last_agent_message))
+        return self._guard_outcome(
+            state, await self.detect_guard(text, last_agent_message)
+        )
 
     async def detect_guard(self, text: str, last_agent_message: str = "") -> str:
         """Which guard this turn trips, by model where possible and wording where not.
@@ -241,17 +306,28 @@ class ConversationGuardsMixin:
         client = getattr(self, "client", None)
         if client is None:
             return matched
+        # Skip the LLM call when no guard-adjacent vocabulary is present at all.
+        # Normal survey answers (ratings, yes/no, short feedback) never trigger guards;
+        # calling the model for them wastes ~0.6-0.8 s every turn with no upside.
+        if not matched and not _GUARD_SIGNAL.search(text):
+            return ""
         try:
-            assessment = await detect(client, last_agent_message=last_agent_message, member_text=text)
-        except Exception:  # provider outage, rate limit past its retries, bad output
+            assessment = await detect(
+                client, last_agent_message=last_agent_message, member_text=text
+            )
+        except Exception:  # noqa: BLE001 - provider outage, rate limit past its retries, bad output
             # A guard cannot end the call over a failed provider call the way
             # reading the turn does: the whole point of this one is that it runs
             # even when nothing else can.
             return matched
-        # The one place the patterns overrule the model. See the module note: a
-        # plain statement of harm is not something a model gets to argue with.
+        # The two places the patterns overrule the model.
+        # Safeguarding: a plain statement of harm cannot be argued with.
+        # Voicemail: only machine-unambiguous phrases ("after the tone") override;
+        #   availability phrases ("not available to take your call") the model resolves.
         if matched == SAFEGUARDING:
-            return SAFEGUARDING
+            return matched
+        if matched == VOICEMAIL and _VOICEMAIL_MACHINE.search(text):
+            return matched
         return resolve(assessment)
 
     def _guard_outcome(self, state: SurveyState, kind: str) -> GuardOutcome:

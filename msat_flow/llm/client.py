@@ -16,12 +16,21 @@ Provider comes from the environment, matching the RCM repos' ``.env``:
 Both calls take a ``role`` — which of a turn's three calls this is — and time
 themselves under it whenever something is collecting timings. See ``timing.py``;
 on a real call nothing collects and nothing is measured.
+
+Per-role output-token caps (override the global ``LLM_MAX_OUTPUT_TOKENS``):
+
+    MSAT_MAX_TOKENS_GUARD=50      # 5 booleans, ~20 real tokens
+    MSAT_MAX_TOKENS_EXTRACT=200   # slot values + metadata
+    MSAT_MAX_TOKENS_GENERATE=80   # 1-2 phone sentences
 """
 
 from __future__ import annotations
 
+import logging
 import os
 from typing import Any, Protocol, TypeVar
+
+log = logging.getLogger(__name__)
 
 from pydantic import BaseModel
 
@@ -49,7 +58,12 @@ class SupportsStructured(Protocol):
     """
 
     async def structured(
-        self, messages: list[dict[str, str]], schema: type[ModelT], *, role: str = ""
+        self,
+        messages: list[dict[str, str]],
+        schema: type[ModelT],
+        *,
+        role: str = "",
+        max_tokens: int | None = None,
     ) -> ModelT: ...
 
     async def text(self, messages: list[dict[str, str]], *, role: str = "") -> str: ...
@@ -67,7 +81,9 @@ class LLMClient:
         self.provider = (provider or _env("LLM_PROVIDER", default="openai")).lower()
         self.model = model or _env("MSAT_MODEL", "LLM_MODEL", default="gpt-4o-mini")
         self.temperature = (
-            float(_env("MSAT_TEMPERATURE", default="0")) if temperature is None else temperature
+            float(_env("MSAT_TEMPERATURE", default="0"))
+            if temperature is None
+            else temperature
         )
         # Provider 429s are routine on shared deployments and must not end a live
         # call. The SDK backs off between attempts.
@@ -76,6 +92,17 @@ class LLMClient:
         # is indistinguishable from a hang — the member sits in silence and the
         # turn never returns. Fail fast enough to retry inside a human pause.
         self.timeout = float(_env("LLM_TIMEOUT_SECONDS", default="45"))
+        self.max_output_tokens = int(_env("LLM_MAX_OUTPUT_TOKENS", default="150"))
+        # Per-role caps take precedence over the global limit when set.
+        self._role_tokens: dict[str, int] = {
+            role: int(val)
+            for role, env_var, default in (
+                (timing.GUARD, "MSAT_MAX_TOKENS_GUARD", "50"),
+                (timing.EXTRACT, "MSAT_MAX_TOKENS_EXTRACT", "200"),
+                (timing.GENERATE, "MSAT_MAX_TOKENS_GENERATE", "80"),
+            )
+            if (val := _env(env_var, default=default))
+        }
         self._chat: Any | None = None
 
     def _http_client(self):
@@ -83,7 +110,9 @@ class LLMClient:
         import httpx
 
         return httpx.AsyncClient(
-            limits=httpx.Limits(max_connections=20, max_keepalive_connections=5, keepalive_expiry=15.0),
+            limits=httpx.Limits(
+                max_connections=20, max_keepalive_connections=10, keepalive_expiry=30.0
+            ),
             timeout=self.timeout,
         )
 
@@ -100,6 +129,7 @@ class LLMClient:
                 max_retries=self.max_retries,
                 timeout=self.timeout,
                 http_async_client=self._http_client(),
+                max_tokens=self.max_output_tokens,
             )
         else:
             from langchain_openai import ChatOpenAI
@@ -109,18 +139,28 @@ class LLMClient:
                 temperature=self.temperature,
                 max_retries=self.max_retries,
                 timeout=self.timeout,
+                max_tokens=self.max_output_tokens,
                 http_async_client=self._http_client(),
             )
         return self._chat
 
     async def structured(
-        self, messages: list[dict[str, str]], schema: type[ModelT], *, role: str = ""
+        self,
+        messages: list[dict[str, str]],
+        schema: type[ModelT],
+        *,
+        role: str = "",
+        max_tokens: int | None = None,
     ) -> ModelT:
         # Function calling rather than strict json_schema mode: Azure's strict
         # mode demands every property be listed in `required`, which would force
         # the model to emit a value for each optional field — exactly the
         # guessing the extraction contract forbids.
-        chain = self._client().with_structured_output(schema, method="function_calling")
+        limit = max_tokens if max_tokens is not None else self._role_tokens.get(role)
+        base = self._client()
+        if limit is not None:
+            base = base.bind(max_tokens=limit)
+        chain = base.with_structured_output(schema, method="function_calling")
         # The whole call is inside the clock, retries and all: what a turn cost is
         # what the member waited for, not what the last attempt took.
         with timing.measure(role):
@@ -131,3 +171,15 @@ class LLMClient:
         with timing.measure(role):
             response = await self._client().ainvoke(messages)
         return str(getattr(response, "content", response)).strip()
+
+    async def warmup(self) -> None:
+        """Fire a 1-token dummy call to pre-establish the TCP+TLS connection."""
+        try:
+            # bind max_tokens=1 so the call is as cheap as possible
+            await (
+                self._client()
+                .bind(max_tokens=1)
+                .ainvoke([{"role": "user", "content": "hi"}])
+            )
+        except Exception as exc:  # noqa: BLE001
+            log.debug("warmup call failed (non-fatal): %s", exc)

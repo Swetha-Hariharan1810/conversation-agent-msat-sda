@@ -49,7 +49,7 @@
       "payload": {
         "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
         "call_context": {
-          "call_id": "rcm-live-001",
+          "call_id": "mct-live-001",
           "language": "en-US"
         },
         "policyholder": {
@@ -89,7 +89,7 @@
       "payload": {
         "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
         "call_context": {
-          "call_id": "rcm-live-002",
+          "call_id": "mct-live-002",
           "language": "en-US"
         },
         "policyholder": {
@@ -129,7 +129,7 @@
       "payload": {
         "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
         "call_context": {
-          "call_id": "rcm-live-003",
+          "call_id": "mct-live-003",
           "language": "en-US"
         },
         "policyholder": {
@@ -172,7 +172,7 @@
       "payload": {
         "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
         "call_context": {
-          "call_id": "rcm-live-004",
+          "call_id": "mct-live-004",
           "language": "en-US"
         },
         "policyholder": {
@@ -211,7 +211,7 @@
       "payload": {
         "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
         "call_context": {
-          "call_id": "rcm-live-005",
+          "call_id": "mct-live-005",
           "language": "en-US"
         },
         "policyholder": {
@@ -240,7 +240,7 @@
       "payload": {
         "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
         "call_context": {
-          "call_id": "rcm-live-006",
+          "call_id": "mct-live-006",
           "language": "en-US"
         },
         "policyholder": {
@@ -269,7 +269,7 @@
       "payload": {
         "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
         "call_context": {
-          "call_id": "rcm-live-007",
+          "call_id": "mct-live-007",
           "language": "en-US"
         },
         "policyholder": {
@@ -296,7 +296,7 @@
       "payload": {
         "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
         "call_context": {
-          "call_id": "rcm-live-008",
+          "call_id": "mct-live-008",
           "language": "en-US"
         },
         "policyholder": {
@@ -336,7 +336,7 @@
       "payload": {
         "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
         "call_context": {
-          "call_id": "rcm-live-009",
+          "call_id": "mct-live-009",
           "language": "en-US"
         },
         "policyholder": {
@@ -365,7 +365,7 @@
       "payload": {
         "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
         "call_context": {
-          "call_id": "rcm-live-010",
+          "call_id": "mct-live-010",
           "language": "en-US"
         },
         "policyholder": {
@@ -423,7 +423,7 @@
       "payload": {
         "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
         "call_context": {
-          "call_id": "rcm-live-011",
+          "call_id": "mct-live-011",
           "language": "en-US"
         },
         "policyholder": {
@@ -473,7 +473,7 @@
       "payload": {
         "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
         "call_context": {
-          "call_id": "rcm-live-012",
+          "call_id": "mct-live-012",
           "language": "en-US"
         },
         "policyholder": {
@@ -545,7 +545,7 @@
       "payload": {
         "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
         "call_context": {
-          "call_id": "rcm-live-013",
+          "call_id": "mct-live-013",
           "language": "en-US"
         },
         "policyholder": {
@@ -602,7 +602,7 @@
       "payload": {
         "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
         "call_context": {
-          "call_id": "rcm-live-014",
+          "call_id": "mct-live-014",
           "language": "en-US"
         },
         "policyholder": {
@@ -666,7 +666,7 @@
       "payload": {
         "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
         "call_context": {
-          "call_id": "rcm-live-015",
+          "call_id": "mct-live-015",
           "language": "en-US"
         },
         "policyholder": {
@@ -702,7 +702,7 @@
       "payload": {
         "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
         "call_context": {
-          "call_id": "rcm-live-016",
+          "call_id": "mct-live-016",
           "language": "en-US"
         },
         "policyholder": {
@@ -754,7 +754,7 @@
       "payload": {
         "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
         "call_context": {
-          "call_id": "rcm-live-017",
+          "call_id": "mct-live-017",
           "language": "en-US"
         },
         "policyholder": {
@@ -768,23 +768,27 @@
         "participation_consent": "Yes, go on.",
         "reviewed_resources": "Yes, I looked at some.",
         "resource_helpfulness": "Oh, it's hard to say really. They were what they were.",
-        "improvement_feedback": "Nothing really.",
-        "liked_most": "The articles were clear enough.",
-        "would_recommend": "Yes.",
-        "staff_helpful": "Yes.",
-        "overall_experience": "Somewhat helpful."
+        "improvement_feedback": "THIS MUST NEVER BE ASKED",
+        "liked_most": "THIS MUST NEVER BE ASKED",
+        "would_recommend": "THIS MUST NEVER BE ASKED",
+        "staff_helpful": "THIS MUST NEVER BE ASKED",
+        "overall_experience": "THIS MUST NEVER BE ASKED"
       },
       "expect": {
-        "disposition": "partially_surveyed",
+        "disposition": "representative_requested",
         "declined": [
           "resource_helpfulness"
         ],
         "answers": {
-          "reviewed_resources": "yes",
-          "overall_experience": "somewhat_helpful"
+          "reviewed_resources": "yes"
         },
         "not_asked": [
-          "no_review_reason"
+          "no_review_reason",
+          "improvement_feedback",
+          "liked_most",
+          "would_recommend",
+          "staff_helpful",
+          "overall_experience"
         ]
       },
       "why": [
@@ -794,10 +798,8 @@
         "",
         "Three things have to be true at once. Nothing is recorded — the nearest option",
         "is somewhat_helpful and it is still a guess. The question stops being asked",
-        "rather than going round for ever. And the call CARRIES ON: one question that",
-        "cannot be settled is a gap in a survey, not a reason to stop surveying, so the",
-        "five questions after it are still asked and answered and the disposition is",
-        "partially_surveyed rather than ended_early.",
+        "rather than going round for ever. And on the third failed attempt the call",
+        "hands off to a representative.",
         "",
         "This is the one place 'declined' is asserted as something that MUST happen.",
         "Everywhere else it is the thing that must not."
@@ -808,7 +810,7 @@
       "payload": {
         "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
         "call_context": {
-          "call_id": "rcm-live-018",
+          "call_id": "mct-live-018",
           "language": "en-US"
         },
         "policyholder": {
@@ -846,7 +848,7 @@
       "payload": {
         "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
         "call_context": {
-          "call_id": "rcm-live-019",
+          "call_id": "mct-live-019",
           "language": "en-US"
         },
         "policyholder": {
@@ -882,7 +884,7 @@
       "payload": {
         "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
         "call_context": {
-          "call_id": "rcm-live-020",
+          "call_id": "mct-live-020",
           "language": "en-US"
         },
         "policyholder": {
@@ -903,7 +905,7 @@
         "resource_helpfulness": "THIS MUST NEVER BE ASKED"
       },
       "expect": {
-        "disposition": "ended_early",
+        "disposition": "hold_limit_transfer",
         "not_asked": [
           "resource_helpfulness"
         ]
@@ -913,10 +915,9 @@
         "refusing anything, and the agent waits — but not for ever, and not by talking",
         "into an empty room.",
         "",
-        "max_consecutive_holds is 3, so the fourth ends the call politely with the",
-        "answers already collected kept. Reported as ended_early rather than as a member",
-        "who would not answer: nobody declined anything here, the call just never got",
-        "going."
+        "max_consecutive_holds is 3, so the fourth ends the call with a representative",
+        "handoff — somebody who never came back to the phone needs a person to follow up,",
+        "not a polite goodbye to an empty room."
       ]
     },
     {
@@ -924,7 +925,7 @@
       "payload": {
         "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
         "call_context": {
-          "call_id": "rcm-live-021",
+          "call_id": "mct-live-021",
           "language": "en-US"
         },
         "policyholder": {
@@ -939,7 +940,7 @@
         "reviewed_resources": "THIS MUST NEVER BE ASKED"
       },
       "expect": {
-        "disposition": "ended_early",
+        "disposition": "representative_requested",
         "not_asked": [
           "participation_consent",
           "reviewed_resources"
@@ -947,16 +948,13 @@
       },
       "why": [
         "A gate that never settles. There is no version of this survey that runs without",
-        "knowing who is on the line, so the call ends politely rather than surveying",
-        "somebody who was never identified — and it must never fall through to consent.",
+        "knowing who is on the line, so once max_identity_asks is spent the call hands",
+        "off to a representative rather than ending blindly — a member who will not say",
+        "who they are needs a person, not a polite goodbye.",
         "",
-        "Read this one alongside what it costs. max_identity_asks is 2, and asking us",
-        "who WE are does not spend a retry but does spend an ask, so a member who says",
-        "'who's asking?' twice has this call ended on her third turn. That is current,",
-        "deliberate behaviour and it is what this scenario pins. It is also exactly the",
-        "case the ask-budget proposal is about: if that budget changes, this scenario",
-        "changes with it, and it should be read as the reason rather than as a",
-        "regression."
+        "max_identity_asks is 2, and asking us who WE are does not spend a retry but",
+        "does spend an ask, so a member who says 'who's asking?' twice has this call",
+        "handed off on her third turn."
       ]
     },
     {
@@ -964,7 +962,7 @@
       "payload": {
         "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
         "call_context": {
-          "call_id": "rcm-live-022",
+          "call_id": "mct-live-022",
           "language": "en-US"
         },
         "policyholder": {
@@ -1015,7 +1013,7 @@
       "payload": {
         "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
         "call_context": {
-          "call_id": "rcm-live-023",
+          "call_id": "mct-live-023",
           "language": "en-US"
         },
         "policyholder": {
@@ -1028,7 +1026,11 @@
         "reached_policyholder": "Yes, speaking.",
         "participation_consent": "Not just now, I'm in the middle of something.",
         "wants_reschedule": "Yes, that would be better.",
-        "reschedule_datetime": "Oh, I couldn't say — whenever suits you, really.",
+        "reschedule_datetime": [
+          "Oh, I couldn't say — whenever suits you, really.",
+          "Really, I have no preference — any time is fine.",
+          "I genuinely don't mind, just call whenever."
+        ],
         "reviewed_resources": "THIS MUST NEVER BE ASKED"
       },
       "expect": {
@@ -1041,13 +1043,2033 @@
         "A reschedule where the member never names a time, on a rising-tier member so",
         "the tier is not always the high one in the interesting calls.",
         "",
-        "The call must still end as a reschedule request rather than as a survey — and",
-        "must not slide into the questions because consent was never given. Note what",
-        "this pins about the datetime: the first non-empty thing she says to that",
-        "question is captured verbatim and becomes the requested time, so today the work",
-        "item goes back with 'whenever suits you, really' in it. That is a real weakness",
-        "and it is written down here rather than asserted, because asserting it would",
-        "make it look intended."
+        "The agent asks up to max_asks_per_slot times for a specific date or time.",
+        "Vague answers ('whenever suits you', 'any time is fine') do not satisfy the",
+        "check and trigger a retry with a nudge. On the final attempt the agent accepts",
+        "whatever the member says and closes as reschedule_requested — the callback team",
+        "will handle scheduling. The call must never slide into the survey questions",
+        "because consent was never given."
+      ]
+    },
+    {
+      "id": "carrier_announcement_voicemail",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "mct-live-024",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "The person you are trying to reach is not available. Please record your message after the tone.",
+        "participation_consent": "THIS MUST NEVER BE ASKED",
+        "reviewed_resources": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "voicemail_left",
+        "not_asked": [
+          "participation_consent",
+          "reviewed_resources"
+        ]
+      },
+      "why": [
+        "A carrier network announcement rather than the member's own personal greeting.",
+        "The wording matches the voicemail.carrier_announcement guard scenario, which",
+        "tests whether the pattern is RECOGNISED in isolation — this is the end-to-end",
+        "half: what the call does once it recognises one.",
+        "",
+        "The approved voicemail message must be spoken verbatim and the call must end",
+        "there. A carrier announcement cannot consent to anything and must never be",
+        "surveyed."
+      ]
+    },
+    {
+      "id": "off_topic_feedback_redirected_and_answered",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "mct-live-025",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, go on.",
+        "reviewed_resources": "Yes, some of the articles.",
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": [
+          "I think we should have more chickens. Chickens are very helpful for everyone.",
+          "More regular phone check-ins would be nice."
+        ],
+        "liked_most": "The articles were clear and easy to read.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful."
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "not_declined": [
+          "improvement_feedback"
+        ],
+        "not_asked": [
+          "no_review_reason"
+        ]
+      },
+      "why": [
+        "A completely off-topic response on a feedback question must redirect the member",
+        "back to the survey rather than accepting it or treating it as a refusal.",
+        "",
+        "The first reply to improvement_feedback mentions chickens — entirely unrelated to",
+        "an aging-in-place program — and must not be recorded. The agent asks again. The",
+        "second reply is genuine feedback and must land. The call ends surveyed and the",
+        "slot must not appear as declined — the member answered once redirected."
+      ]
+    },
+    {
+      "id": "ambiguous_rating_retried_then_answered",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "mct-live-026",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, go on.",
+        "reviewed_resources": "Yes, I looked at a few.",
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "Nothing comes to mind.",
+        "liked_most": "The articles were easy to follow.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": [
+          "I would say it's somewhere between extremely helpful and somewhat helpful.",
+          "Somewhat helpful."
+        ]
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": {
+          "overall_experience": "somewhat_helpful"
+        },
+        "not_declined": [
+          "overall_experience"
+        ],
+        "not_asked": [
+          "no_review_reason"
+        ]
+      },
+      "why": [
+        "An ambiguous answer on a choice question must be retried — with different wording",
+        "rather than a verbatim repeat — and the answer that arrives on the second attempt",
+        "must land.",
+        "",
+        "The first reply to overall_experience is 'somewhere between extremely helpful and",
+        "somewhat helpful', which cannot be mapped to any single option. The agent asks",
+        "again. The second reply is unambiguous and must be recorded as somewhat_helpful.",
+        "",
+        "Two things are asserted: the correct answer lands, and the slot is not reported",
+        "as declined — a member who needed one re-ask is not a member who refused."
+      ]
+    },
+    {
+      "id": "off_topic_feedback_exhausted_then_declined",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "mct-live-027",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, that's fine.",
+        "reviewed_resources": "Yes, a few of the articles.",
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "Nothing really.",
+        "liked_most": [
+          "My cat is called Biscuit and she sits on my lap every morning.",
+          "I had minestrone soup for lunch. Very warming.",
+          "The neighbours have a new car. Red, it is."
+        ],
+        "would_recommend": "THIS MUST NEVER BE ASKED",
+        "staff_helpful": "THIS MUST NEVER BE ASKED",
+        "overall_experience": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "representative_requested",
+        "declined": [
+          "liked_most"
+        ],
+        "answers": {
+          "reviewed_resources": "yes",
+          "resource_helpfulness": "somewhat_helpful"
+        },
+        "not_asked": [
+          "no_review_reason",
+          "would_recommend",
+          "staff_helpful",
+          "overall_experience"
+        ]
+      },
+      "why": [
+        "Off-topic answers on a feedback question spend the retry budget just as unclear",
+        "answers do. When the budget runs out the question is reported as declined and the",
+        "call hands off to a representative.",
+        "",
+        "All three replies to liked_most are entirely unrelated to the program — a cat,",
+        "soup, and a neighbour's car. Each one triggers a redirect. On the third the",
+        "budget is exhausted, the slot is declined, and the call escalates.",
+        "",
+        "This is the pairing for off_topic_feedback_redirected_and_answered: one shows",
+        "that off-topic handling redirects without charging a decline when the member",
+        "eventually answers; this one shows it eventually does charge, and that",
+        "budget exhaustion hands the call to a representative."
+      ]
+    },
+    {
+      "id": "dnc_at_identity_gate",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "mct-live-028",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Patricia",
+          "last_name": "Sims",
+          "risk_tier": "rising"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Please take this number off your list — I've already asked twice to be removed and I don't want any more calls.",
+        "participation_consent": "THIS MUST NEVER BE ASKED",
+        "reviewed_resources": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "do_not_call",
+        "not_asked": [
+          "participation_consent",
+          "reviewed_resources"
+        ]
+      },
+      "why": [
+        "A DNC request at the very first member turn — before identity is confirmed and",
+        "before consent is asked. Every other DNC test fires mid-survey.",
+        "",
+        "The guard must catch it at the opening line, end the call immediately, and",
+        "never ask anything after it. No survey question may reach a member who has",
+        "explicitly asked not to be called."
+      ]
+    },
+    {
+      "id": "three_survey_answers_from_one_turn",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "mct-live-029",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Helen",
+          "last_name": "Carey",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, that's me.",
+        "participation_consent": "Yes, fine.",
+        "reviewed_resources": "Oh yes, I read all of them — extremely helpful they were. And I'd recommend the program to anyone, without a doubt.",
+        "resource_helpfulness": "THIS MUST NEVER BE ASKED",
+        "would_recommend": "THIS MUST NEVER BE ASKED",
+        "improvement_feedback": "Nothing specific comes to mind.",
+        "liked_most": "The information packs were very clear.",
+        "staff_helpful": "Yes, very knowledgeable.",
+        "overall_experience": "Extremely helpful."
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": {
+          "reviewed_resources": "yes",
+          "resource_helpfulness": "extremely_helpful",
+          "would_recommend": "yes",
+          "overall_experience": "extremely_helpful"
+        },
+        "not_asked": [
+          "resource_helpfulness",
+          "would_recommend",
+          "no_review_reason"
+        ]
+      },
+      "why": [
+        "A member who gives three answers in one breath: Q1a, Q1b, and Q4. The whole",
+        "questionnaire is offered to the extractor every turn so an answer volunteered",
+        "ahead of its question is just as valid as one given when it is put.",
+        "",
+        "resource_helpfulness and would_recommend must not be asked again. The slots are",
+        "already answered, and putting them a second time would be asking a member who",
+        "was being helpful to repeat herself.",
+        "",
+        "This is the most forward version of the multi-answer case: three slots from one",
+        "turn, skipping all the questions in between."
+      ]
+    },
+    {
+      "id": "safeguarding_before_consent_is_asked",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "mct-live-030",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, I'm Margaret. I'll be honest with you — I've been feeling very low lately. Some mornings I wonder what the point of getting up is.",
+        "participation_consent": "THIS MUST NEVER BE ASKED",
+        "reviewed_resources": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "safeguarding_handoff",
+        "not_asked": [
+          "participation_consent",
+          "reviewed_resources"
+        ]
+      },
+      "why": [
+        "Safeguarding at the very first member turn — before consent, before any survey",
+        "question. Every other safeguarding whole-call test fires mid-survey.",
+        "",
+        "The guard runs on every turn, including the identity turn, and a member at risk",
+        "must be handed to a person immediately regardless of where in the call they say",
+        "it. Asking consent of someone who has just disclosed distress would be wrong,",
+        "and the survey must not start."
+      ]
+    },
+    {
+      "id": "identity_confirmed_on_second_attempt",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "mct-live-031",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": [
+          "Sorry, who are you with — is this something I signed up for?",
+          "Ah right, yes — that's me, Margaret. Go on then."
+        ],
+        "participation_consent": "Yes, alright.",
+        "reviewed_resources": "Yes, some of the articles.",
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "Nothing I can think of.",
+        "liked_most": "The articles were clear.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful."
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": {
+          "reviewed_resources": "yes",
+          "resource_helpfulness": "somewhat_helpful",
+          "would_recommend": "yes",
+          "overall_experience": "somewhat_helpful"
+        },
+        "not_asked": [
+          "no_review_reason"
+        ]
+      },
+      "why": [
+        "The identity success path that will_not_say_who_she_is never reaches. A member",
+        "who asks who is calling before confirming spends an identity ask — the agent",
+        "explains itself and puts the question again — but confirms on the second attempt",
+        "and the survey continues normally.",
+        "",
+        "This is the pairing for will_not_say_who_she_is: that one shows the failure path",
+        "(representative handoff after max_identity_asks); this one shows that the same",
+        "opening does not have to end that way. An ask does not become a refusal until",
+        "the budget is gone."
+      ]
+    },
+    {
+      "id": "correction_updates_rating_without_reopening_branch",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "mct-live-032",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, that's fine.",
+        "reviewed_resources": "Yes, I read a few of them.",
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "Actually — I was too modest a moment ago. The resources were extremely helpful, not just somewhat. As for improvements, more regular phone calls would be nice.",
+        "liked_most": "The articles were easy to understand.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Extremely helpful."
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": {
+          "reviewed_resources": "yes",
+          "resource_helpfulness": "extremely_helpful"
+        },
+        "not_declined": [
+          "improvement_feedback"
+        ],
+        "not_asked": [
+          "no_review_reason"
+        ]
+      },
+      "why": [
+        "A correction that updates a choice rating without reopening any branch.",
+        "",
+        "a_correction_reopens_the_other_branch tests a correction that changes the",
+        "survey's structure — reviewed_resources flipping from yes to no closes one",
+        "branch and opens another. This one is the simpler case: the member revises",
+        "resource_helpfulness from somewhat_helpful to extremely_helpful while answering",
+        "the next question. The branch stays the same (reviewed_resources is still yes,",
+        "no_review_reason is never asked), and only the rating changes.",
+        "",
+        "Two things must be true: the corrected rating is what reaches the outcome, not",
+        "the original one; and the correction must not charge a retry against the slot",
+        "it arrived alongside — improvement_feedback must not appear as declined."
+      ]
+    },
+    {
+      "id": "safeguarding_in_turn_with_concurrent_survey_answer",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "mct-live-033",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, go on.",
+        "reviewed_resources": "Yes, some of them.",
+        "resource_helpfulness": "Somewhat helpful, I suppose — though I have to say, none of it really matters. I've been feeling so low lately I can't see the point in anything any more.",
+        "improvement_feedback": "THIS MUST NEVER BE ASKED",
+        "liked_most": "THIS MUST NEVER BE ASKED",
+        "would_recommend": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "safeguarding_handoff",
+        "answers": {
+          "reviewed_resources": "yes"
+        },
+        "not_asked": [
+          "improvement_feedback",
+          "liked_most",
+          "would_recommend"
+        ]
+      },
+      "why": [
+        "A safeguarding disclosure embedded in the same turn as a survey answer.",
+        "",
+        "safeguarding_stops_the_survey_mid_call keeps the two on separate turns: the",
+        "rating lands cleanly, then the disclosure arrives on the next question and the",
+        "call hands off. Here they arrive together. The guard and the extractor run",
+        "concurrently; when the guard fires, the extractor's output is discarded — so",
+        "resource_helpfulness must NOT appear in the outcome, even though the member",
+        "said 'somewhat helpful' in the same breath.",
+        "",
+        "The question is whether the call protects the member correctly when the urgent",
+        "signal arrives alongside ordinary content. reviewed_resources from the previous",
+        "turn is kept — only this turn's reading is thrown away — and nothing is asked",
+        "after the handoff."
+      ]
+    },
+    {
+      "id": "hold_then_confused_return_then_answers",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "mct-live-034",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, go on.",
+        "reviewed_resources": [
+          "Just give me a minute, I need to sit down.",
+          "Sorry — I've gone blank. What was the question again?",
+          "Yes, I did read through several of them."
+        ],
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "Nothing comes to mind.",
+        "liked_most": "The information was easy to follow.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful.",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": {
+          "reviewed_resources": "yes",
+          "resource_helpfulness": "somewhat_helpful"
+        },
+        "not_declined": [
+          "reviewed_resources"
+        ],
+        "not_asked": [
+          "no_review_reason"
+        ]
+      },
+      "why": [
+        "Three replies on one slot: a pause, a confused return, then the real answer.",
+        "",
+        "hold_then_carries_on is one clean pause followed by a clean answer. This one",
+        "is the messier version from a real call: the member steps away, comes back",
+        "without knowing what was being asked, and has to be told again before she can",
+        "answer. Neither the pause nor the blank return charges a retry — the member",
+        "has not failed to answer, she has simply not been in a position to yet.",
+        "",
+        "Three things must hold: the slot is answered once she is back, the retry budget",
+        "is not spent on turns that were not refusals, and the slot must not appear in",
+        "declined."
+      ]
+    },
+    {
+      "id": "yes_buried_in_off_topic_ramble",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "mct-live-035",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, that's fine.",
+        "reviewed_resources": "Yeah. You know what? My daughter was round at the weekend — she's always on at me about my health — but yes, I did look through a few of the articles.",
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "Nothing I can think of.",
+        "liked_most": "The nurse was very patient with me.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful.",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": {
+          "reviewed_resources": "yes",
+          "resource_helpfulness": "somewhat_helpful"
+        },
+        "not_declined": [
+          "reviewed_resources"
+        ],
+        "not_asked": [
+          "no_review_reason"
+        ]
+      },
+      "why": [
+        "A yes buried inside a conversational ramble. The member answers the question",
+        "correctly but surrounds it with off-topic content about her daughter.",
+        "",
+        "Every other yes/no test has a clean, direct answer. Real calls do not. A member",
+        "who says 'yeah... but yes, I did read them' has answered yes — the surrounding",
+        "noise must not prevent it from landing, and the off-topic content must not be",
+        "mistaken for a refusal or for survey content.",
+        "",
+        "This mirrors the pattern seen in live calls where a brief affirmative arrives",
+        "alongside an unrelated remark."
+      ]
+    },
+    {
+      "id": "between_options_exhausted_then_declined",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "mct-live-036",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Alan",
+          "last_name": "Whitfield",
+          "risk_tier": "rising"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, that's me.",
+        "participation_consent": "Yes, go ahead.",
+        "reviewed_resources": "Yes, I read a few.",
+        "resource_helpfulness": [
+          "Somewhere between extremely helpful and somewhat helpful.",
+          "I'd say somewhere in the middle — between somewhat helpful and not very helpful.",
+          "It's really hard to pick one. Somewhere between the options, if I'm honest."
+        ],
+        "improvement_feedback": "THIS MUST NEVER BE ASKED",
+        "liked_most": "THIS MUST NEVER BE ASKED",
+        "would_recommend": "THIS MUST NEVER BE ASKED",
+        "overall_experience": "THIS MUST NEVER BE ASKED",
+        "no_review_reason": "THIS MUST NEVER BE ASKED",
+        "staff_helpful": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "representative_requested",
+        "declined": [
+          "resource_helpfulness"
+        ],
+        "answers": {
+          "reviewed_resources": "yes"
+        },
+        "not_asked": [
+          "no_review_reason",
+          "staff_helpful",
+          "improvement_feedback",
+          "liked_most",
+          "would_recommend",
+          "overall_experience"
+        ]
+      },
+      "why": [
+        "The 'somewhere between' exhaustion pattern, drawn from real calls. The member",
+        "genuinely cannot commit to a single option and says so three times — the",
+        "wording changes but never resolves to one of the four choices.",
+        "",
+        "one_question_never_gets_a_usable_answer covers exhaustion with vague non-answers",
+        "('they were what they were'). This is the structurally identical but linguistically",
+        "distinct case: the member IS engaging with the options and naming them, but",
+        "she is placing herself between them rather than on one. Neither 'between",
+        "extremely helpful and somewhat helpful' nor 'somewhere in the middle' maps to",
+        "any single option — recording the nearest would be a guess.",
+        "",
+        "Three things must hold: nothing is recorded (no guess), the question stops",
+        "being asked, and the call hands off to a representative."
+      ]
+    },
+    {
+      "id": "terse_minimal_answers_complete_survey",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "mct-live-037",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Alan",
+          "last_name": "Whitfield",
+          "risk_tier": "rising"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes.",
+        "participation_consent": "Yeah.",
+        "reviewed_resources": "Yes.",
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "None.",
+        "liked_most": "Nothing really.",
+        "would_recommend": "No.",
+        "overall_experience": "Not very helpful.",
+        "no_review_reason": "THIS MUST NEVER BE ASKED",
+        "staff_helpful": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": {
+          "reviewed_resources": "yes",
+          "resource_helpfulness": "somewhat_helpful",
+          "would_recommend": "no",
+          "overall_experience": "not_very_helpful"
+        },
+        "not_asked": [
+          "no_review_reason",
+          "staff_helpful"
+        ]
+      },
+      "why": [
+        "Single-word and two-word answers throughout. The whole survey, minimal input.",
+        "",
+        "Every other test uses natural-length replies. Real calls also contain members",
+        "who say as little as possible — 'yes', 'yeah', 'none', 'no' — and each of",
+        "those must still land. A pipeline that works on 'Yes, I read several of the",
+        "articles and found them helpful' must also work on 'Yes.'",
+        "",
+        "The negative-leaning answers are deliberate: this member is not enthusiastic",
+        "and her terseness reflects it. 'No.' for would_recommend and 'Not very helpful'",
+        "for overall_experience are still valid answers, and a short reply is not a",
+        "refusal."
+      ]
+    },
+    {
+      "id": "member_grumbles_before_giving_rating",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": {
+          "call_id": "mct-live-038",
+          "language": "en-US"
+        },
+        "policyholder": {
+          "first_name": "Margaret",
+          "last_name": "Ellison",
+          "risk_tier": "high"
+        }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, alright.",
+        "reviewed_resources": "Yes, some of them.",
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "More regular check-ins would be nice.",
+        "liked_most": "The nurse was brilliant.",
+        "would_recommend": [
+          "Why do they always ask you this sort of thing? I don't know what difference it makes.",
+          "Yes, I would. The nurse was excellent."
+        ],
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful.",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": {
+          "reviewed_resources": "yes",
+          "resource_helpfulness": "somewhat_helpful",
+          "would_recommend": "yes",
+          "overall_experience": "somewhat_helpful"
+        },
+        "not_declined": [
+          "would_recommend"
+        ],
+        "not_asked": [
+          "no_review_reason"
+        ]
+      },
+      "why": [
+        "A member who grumbles about being asked a question before she answers it.",
+        "",
+        "The first reply to would_recommend is frustration about the survey itself — not",
+        "an answer to whether she would recommend the program, and not a refusal either.",
+        "The agent must not record it as a no (she did not say no), must not treat it as",
+        "a refusal (she did not decline), and must ask the question again.",
+        "",
+        "The second reply is the real answer and must land. The slot must not appear in",
+        "declined — a member who needed the question put twice because she was venting",
+        "first has still answered it."
+      ]
+    },
+    {
+      "id": "standalone_credit_card_blocks_then_answers",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-039", "language": "en-US" },
+        "policyholder": { "first_name": "Helen", "last_name": "Carey", "risk_tier": "high" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, that's fine.",
+        "reviewed_resources": [
+          "Before we go any further — I've been having trouble with a credit card charge. Can you help me dispute it?",
+          "Yes, I did look through a few of the articles."
+        ],
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "Nothing I can think of.",
+        "liked_most": "The articles were very clearly written.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful.",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": { "reviewed_resources": "yes", "resource_helpfulness": "somewhat_helpful" },
+        "not_declined": ["reviewed_resources"],
+        "reported_intents": ["unsupported"],
+        "not_asked": ["no_review_reason"]
+      },
+      "why": [
+        "A standalone out-of-scope service request — a credit card dispute — given instead",
+        "of answering the first survey question. The agent must say it cannot help with",
+        "that on this call and re-ask, without charging the retry budget against the member.",
+        "The intent stays in the outcome so a person can follow up. reviewed_resources must",
+        "not appear as declined — the member answered it once redirected."
+      ]
+    },
+    {
+      "id": "standalone_insurance_query_blocks_then_answers",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-040", "language": "en-US" },
+        "policyholder": { "first_name": "Dorothy", "last_name": "Marsh", "risk_tier": "rising" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, that's me.",
+        "participation_consent": "Yes, go on.",
+        "reviewed_resources": "Yes, I had a look.",
+        "resource_helpfulness": [
+          "Can I ask you something first — my insurance premium went up last month and nobody has explained why. Can you look into that?",
+          "Somewhat helpful."
+        ],
+        "improvement_feedback": "More regular phone calls would be nice.",
+        "liked_most": "The nurse I spoke to was excellent.",
+        "would_recommend": "Yes.",
+        "overall_experience": "Somewhat helpful.",
+        "staff_helpful": "THIS MUST NEVER BE ASKED",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": { "reviewed_resources": "yes", "resource_helpfulness": "somewhat_helpful" },
+        "not_declined": ["resource_helpfulness"],
+        "reported_intents": ["unsupported"],
+        "not_asked": ["staff_helpful", "no_review_reason"]
+      },
+      "why": [
+        "A standalone insurance query raised in place of a survey answer, mid-survey on a",
+        "rising-tier member. The agent must acknowledge it cannot help with insurance on",
+        "this call and re-ask without spending a retry.",
+        "",
+        "Rising-tier variant: confirms staff_helpful is never asked while also covering",
+        "the freeform acknowledgement behaviour on a different question and member tier."
+      ]
+    },
+    {
+      "id": "answer_includes_credit_card_request",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-041", "language": "en-US" },
+        "policyholder": { "first_name": "Margaret", "last_name": "Ellison", "risk_tier": "high" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, that's fine.",
+        "reviewed_resources": "Yes, I read a few — though while I have you, I'd like to dispute a credit card charge. Can anyone help with that?",
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "Nothing really.",
+        "liked_most": "The information was easy to understand.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful.",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": { "reviewed_resources": "yes", "resource_helpfulness": "somewhat_helpful" },
+        "not_declined": ["reviewed_resources"],
+        "reported_intents": ["unsupported"],
+        "not_asked": ["no_review_reason"]
+      },
+      "why": [
+        "The member answers the survey question AND raises an out-of-scope service request",
+        "in the same breath. The answer must land, the survey must move on, and the credit",
+        "card request must be acknowledged as something this call cannot act on and reported.",
+        "",
+        "No retry is triggered — the member answered. Paired with standalone_credit_card_",
+        "blocks_then_answers which covers the version where no answer came with the request."
+      ]
+    },
+    {
+      "id": "answer_includes_billing_query",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-042", "language": "en-US" },
+        "policyholder": { "first_name": "Margaret", "last_name": "Ellison", "risk_tier": "high" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, alright.",
+        "reviewed_resources": "Yes, I had a look at a few of them.",
+        "resource_helpfulness": "Somewhat helpful. I also want to ask — I received an invoice I don't understand. Is there someone I can speak to about that?",
+        "improvement_feedback": "More regular check-ins would be nice.",
+        "liked_most": "The nurse was very kind.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful.",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": { "resource_helpfulness": "somewhat_helpful" },
+        "not_declined": ["resource_helpfulness"],
+        "reported_intents": ["unsupported"],
+        "not_asked": ["no_review_reason"]
+      },
+      "why": [
+        "Answer plus billing query in one turn at the helpfulness question. The rating must",
+        "be recorded and the survey must continue — the billing enquiry cannot be actioned",
+        "but must be acknowledged and reported for a person to follow up.",
+        "",
+        "The correct wording is 'I'm not able to help with that on this call' — not 'I'll",
+        "note that and pass it on to the program team', which implies the program team",
+        "handles invoice queries."
+      ]
+    },
+    {
+      "id": "asks_what_survey_is_about_then_answers",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-043", "language": "en-US" },
+        "policyholder": { "first_name": "Alan", "last_name": "Whitfield", "risk_tier": "rising" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, alright.",
+        "reviewed_resources": [
+          "Sorry — what is this survey actually about? I'm not entirely sure what I signed up for.",
+          "Ah right, yes — I did go through some of the articles."
+        ],
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "Nothing I can think of.",
+        "liked_most": "The information was clearly presented.",
+        "would_recommend": "Yes.",
+        "overall_experience": "Somewhat helpful.",
+        "staff_helpful": "THIS MUST NEVER BE ASKED",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": { "reviewed_resources": "yes", "resource_helpfulness": "somewhat_helpful" },
+        "not_declined": ["reviewed_resources"],
+        "not_reported_intents": ["clarification"],
+        "not_asked": ["staff_helpful", "no_review_reason"]
+      },
+      "why": [
+        "The member asks what the survey is about before answering the first question.",
+        "The agent must answer — explain it is a short satisfaction survey about their",
+        "experience with the Sagility Smart Step program — and then re-ask.",
+        "",
+        "The member's question must be answered, not ignored or treated as a failed",
+        "attempt. Once the survey question is re-asked and answered, the clarification is",
+        "resolved and must not remain in the outcome."
+      ]
+    },
+    {
+      "id": "asks_what_rating_options_mean_then_answers",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-044", "language": "en-US" },
+        "policyholder": { "first_name": "Margaret", "last_name": "Ellison", "risk_tier": "high" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, that's fine.",
+        "reviewed_resources": "Yes, I read some of the articles.",
+        "resource_helpfulness": [
+          "What exactly is the difference between extremely helpful and somewhat helpful?",
+          "Somewhat helpful, I'd say."
+        ],
+        "improvement_feedback": "Nothing really.",
+        "liked_most": "The information packs were very clear.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful.",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": { "reviewed_resources": "yes", "resource_helpfulness": "somewhat_helpful" },
+        "not_declined": ["resource_helpfulness"],
+        "not_reported_intents": ["clarification"],
+        "not_asked": ["no_review_reason"]
+      },
+      "why": [
+        "The member asks what two of the rating options mean before she can answer. The",
+        "agent must explain the distinction briefly and re-ask the question with all options.",
+        "",
+        "Distinct from general confusion ('I'm not sure I follow'): she is asking a precise",
+        "question about specific options. She has not failed to answer — she has not yet",
+        "been given enough information to answer. Once re-asked, her rating must land and",
+        "the clarification must be resolved, not left in the outcome."
+      ]
+    },
+    {
+      "id": "answer_with_question_about_survey_use",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-045", "language": "en-US" },
+        "policyholder": { "first_name": "Margaret", "last_name": "Ellison", "risk_tier": "high" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, go on.",
+        "reviewed_resources": "Yes, a few of them.",
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "More regular phone calls would be nice — though can I ask, what do you actually do with these answers?",
+        "liked_most": "The nurse was very helpful.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful.",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "not_declined": ["improvement_feedback"],
+        "not_reported_intents": ["clarification"],
+        "not_asked": ["no_review_reason"]
+      },
+      "why": [
+        "The member gives improvement feedback and asks what the survey results are used for",
+        "— an answerable question about the call itself. The agent must address it briefly",
+        "and move on to the next question.",
+        "",
+        "The feedback answer must land. The clarification is resolved once addressed:",
+        "asking what happens to the answers is within the survey context and once spoken to",
+        "there is nothing left to report."
+      ]
+    },
+    {
+      "id": "consent_turn_with_scope_question_proceeds",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-046", "language": "en-US" },
+        "policyholder": { "first_name": "Helen", "last_name": "Carey", "risk_tier": "high" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, that's me.",
+        "participation_consent": "Yes, but could you tell me what sort of questions you'll be asking?",
+        "reviewed_resources": "Yes, I read through a few.",
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "Nothing I can think of.",
+        "liked_most": "The information was very easy to follow.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful.",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": { "reviewed_resources": "yes", "resource_helpfulness": "somewhat_helpful" },
+        "not_declined": ["reviewed_resources", "resource_helpfulness"],
+        "not_reported_intents": ["clarification"],
+        "not_asked": ["no_review_reason"]
+      },
+      "why": [
+        "The member grants consent AND asks what the survey questions will cover in one",
+        "turn. Consent must be recorded as granted and the survey must proceed. The agent",
+        "must answer the scope question before leading into the first question — not ignore it.",
+        "",
+        "The clarification is resolved when consent is recorded and the survey begins.",
+        "Asking what will be covered is a question about this call, answered by the act of",
+        "starting the survey, and must not remain in the outcome."
+      ]
+    },
+    {
+      "id": "answer_with_food_aside_noted_not_reported",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-047", "language": "en-US" },
+        "policyholder": { "first_name": "Margaret", "last_name": "Ellison", "risk_tier": "high" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, alright.",
+        "reviewed_resources": "Yes, a few of the articles.",
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "Nothing really — I had a lovely bowl of tomato soup at lunch, completely off the subject!",
+        "liked_most": "The nurse was brilliant.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful.",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "not_declined": ["improvement_feedback"],
+        "not_reported_intents": ["off_topic"],
+        "not_asked": ["no_review_reason"]
+      },
+      "why": [
+        "The member gives a valid feedback answer ('nothing really') and appends an",
+        "off-topic aside about food. The answer must land. The aside must not prevent the",
+        "call from moving forward, must not be mistaken for survey content, and must not",
+        "appear in the outcome — food comments ask nothing of a person.",
+        "",
+        "With requires_free_flow set for aside intents, the agent briefly acknowledges",
+        "('That's not something I can help with') before continuing, rather than silently",
+        "ignoring it or treating the whole turn as off-topic."
+      ]
+    },
+    {
+      "id": "out_of_scope_at_two_questions_both_reported",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-048", "language": "en-US" },
+        "policyholder": { "first_name": "Helen", "last_name": "Carey", "risk_tier": "high" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, that's fine.",
+        "reviewed_resources": "Yes, I read through a few — I was also hoping to ask about my benefits, but I suppose that's not what this is about?",
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "More check-ins would help. And while I've got someone on the line — there is a claim from two months ago I've heard nothing about.",
+        "liked_most": "The information was very clear.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful.",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": { "reviewed_resources": "yes", "resource_helpfulness": "somewhat_helpful" },
+        "not_declined": ["reviewed_resources", "improvement_feedback"],
+        "reported_intents": ["unsupported"],
+        "not_asked": ["no_review_reason"]
+      },
+      "why": [
+        "Out-of-scope service requests at two separate questions — a benefits query at",
+        "question 1 and an unresolved claim at the improvement feedback question. Both",
+        "arrive alongside an answer so neither triggers a retry.",
+        "",
+        "Asserts the unsupported kind appears in the outcome: a person needs to see both",
+        "entries, and this is the survey-level check that neither is silently dropped. The",
+        "answers must also land, confirming the survey progressed normally around both."
+      ]
+    },
+    {
+      "id": "yes_with_elaboration_at_reviewed_resources",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-049", "language": "en-US" },
+        "policyholder": { "first_name": "Margaret", "last_name": "Ellison", "risk_tier": "high" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, go on.",
+        "reviewed_resources": "Oh, yes. The videos mostly.",
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "Nothing comes to mind.",
+        "liked_most": "The videos were easy to follow.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful.",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": { "reviewed_resources": "yes", "resource_helpfulness": "somewhat_helpful" },
+        "not_declined": ["reviewed_resources"],
+        "not_asked": ["no_review_reason"]
+      },
+      "why": [
+        "The exact live-call pattern that triggered the AMBIGUOUS misclassification fix:",
+        "'Oh, yes. The videos mostly.' is a yes/no answer followed by elaboration.",
+        "",
+        "The elaboration ('the videos mostly') is context, not ambiguity. A yes that",
+        "arrives with a reason or qualifier is still a yes. reviewed_resources must land",
+        "as 'yes' on the first attempt with no retry and no declined flag."
+      ]
+    },
+    {
+      "id": "no_with_reason_at_reviewed_resources",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-050", "language": "en-US" },
+        "policyholder": { "first_name": "Doreen", "last_name": "Pike", "risk_tier": "high" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, alright.",
+        "reviewed_resources": "No, I never got round to them. Been very busy at home lately.",
+        "no_review_reason": "No time, really — just too much on.",
+        "resource_helpfulness": "THIS MUST NEVER BE ASKED",
+        "improvement_feedback": "Maybe more reminders to look at the resources.",
+        "liked_most": "The nurse I spoke to was very kind.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful."
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": { "reviewed_resources": "no", "no_review_reason": "no_time" },
+        "not_declined": ["reviewed_resources"],
+        "not_asked": ["resource_helpfulness"],
+        "skipped": ["resource_helpfulness"]
+      },
+      "why": [
+        "A no answer with an appended reason at reviewed_resources. The reason does not",
+        "make the answer ambiguous — 'No, I never got round to them. Been very busy'",
+        "is a clear no followed by context.",
+        "",
+        "reviewed_resources must land as 'no' without retry, taking the no_review_reason",
+        "branch. resource_helpfulness must never be asked. Paired with",
+        "yes_with_elaboration_at_reviewed_resources: both directions of the branch must",
+        "survive elaboration."
+      ]
+    },
+    {
+      "id": "trailing_fragment_at_resource_helpfulness",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-051", "language": "en-US" },
+        "policyholder": { "first_name": "Margaret", "last_name": "Ellison", "risk_tier": "high" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, go on.",
+        "reviewed_resources": "Yes, I had a look.",
+        "resource_helpfulness": ["They were—", "Extremely helpful, yes."],
+        "improvement_feedback": "Nothing I can think of.",
+        "liked_most": "The articles were very clear.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful.",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": { "resource_helpfulness": "extremely_helpful" },
+        "not_declined": ["resource_helpfulness"],
+        "not_asked": ["no_review_reason"]
+      },
+      "why": [
+        "A trailing fragment ('They were—') at the helpfulness question followed by",
+        "a clear answer on the re-ask.",
+        "",
+        "The first reply breaks off mid-phrase and must be classified as AMBIGUOUS —",
+        "nothing can be inferred from an incomplete sentence. The agent re-asks.",
+        "On the second attempt 'Extremely helpful' maps cleanly to one option and must",
+        "be recorded. resource_helpfulness must not appear as declined — one incomplete",
+        "reply does not exhaust the retry budget."
+      ]
+    },
+    {
+      "id": "trailing_fragment_at_overall_experience",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-052", "language": "en-US" },
+        "policyholder": { "first_name": "Alan", "last_name": "Whitfield", "risk_tier": "rising" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, that's me.",
+        "participation_consent": "Yes, alright.",
+        "reviewed_resources": "Yes, I read a few.",
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "Nothing really.",
+        "liked_most": "The information was clear.",
+        "would_recommend": "Yes.",
+        "overall_experience": ["I would say it was—", "Somewhat helpful."],
+        "staff_helpful": "THIS MUST NEVER BE ASKED",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": { "overall_experience": "somewhat_helpful" },
+        "not_declined": ["overall_experience"],
+        "not_asked": ["staff_helpful", "no_review_reason"]
+      },
+      "why": [
+        "Trailing fragment at the final choice question — the last question asked before",
+        "the survey closes. 'I would say it was—' is an incomplete sentence and must not",
+        "be completed by inference.",
+        "",
+        "The agent must re-ask overall_experience. On the second reply 'Somewhat helpful'",
+        "maps to one option and must be recorded. The slot must not appear as declined.",
+        "Rising-tier member confirms staff_helpful is never asked."
+      ]
+    },
+    {
+      "id": "yes_with_elaboration_at_would_recommend",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-053", "language": "en-US" },
+        "policyholder": { "first_name": "Margaret", "last_name": "Ellison", "risk_tier": "high" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, that's fine.",
+        "reviewed_resources": "Yes, some of the articles.",
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "Nothing I can think of.",
+        "liked_most": "The articles were well written.",
+        "would_recommend": "Yes, absolutely. I've already mentioned it to my sister.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful.",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": { "would_recommend": "yes" },
+        "not_declined": ["would_recommend"],
+        "not_asked": ["no_review_reason"]
+      },
+      "why": [
+        "Yes with immediate reinforcement and a personal anecdote at would_recommend.",
+        "'Yes, absolutely. I've already mentioned it to my sister.' is a clear yes with",
+        "context that must not trigger a retry or count as ambiguous.",
+        "",
+        "The anecdote about mentioning it to her sister is not a survey answer for any",
+        "other slot and must not be mistaken for one."
+      ]
+    },
+    {
+      "id": "no_with_context_at_would_recommend",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-054", "language": "en-US" },
+        "policyholder": { "first_name": "Alan", "last_name": "Whitfield", "risk_tier": "rising" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, go ahead.",
+        "reviewed_resources": "Yes, I read some.",
+        "resource_helpfulness": "Not very helpful.",
+        "improvement_feedback": "More support in the early weeks would help.",
+        "liked_most": "The programme structure was clear.",
+        "would_recommend": "No, not really. I don't know many people who'd be in that situation, to be honest.",
+        "overall_experience": "Not very helpful.",
+        "staff_helpful": "THIS MUST NEVER BE ASKED",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": { "would_recommend": "no", "overall_experience": "not_very_helpful" },
+        "not_declined": ["would_recommend"],
+        "not_asked": ["staff_helpful", "no_review_reason"]
+      },
+      "why": [
+        "A no with an appended explanation at would_recommend. 'No, not really. I don't",
+        "know many people who'd be in that situation' is a clear no — the reason that",
+        "follows does not make it ambiguous or a refusal.",
+        "",
+        "Paired with yes_with_elaboration_at_would_recommend: both directions must",
+        "survive elaboration on this question. The negative-leaning answers throughout",
+        "confirm the pipeline handles an unenthusiastic-but-complete survey correctly."
+      ]
+    },
+    {
+      "id": "yes_with_elaboration_at_staff_helpful",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-055", "language": "en-US" },
+        "policyholder": { "first_name": "Margaret", "last_name": "Ellison", "risk_tier": "high" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, alright.",
+        "reviewed_resources": "Yes, I read several.",
+        "resource_helpfulness": "Extremely helpful.",
+        "improvement_feedback": "Nothing I can think of.",
+        "liked_most": "The walking plan was very practical.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Oh yes, very much so. They were always patient and clear with me.",
+        "overall_experience": "Extremely helpful.",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": { "staff_helpful": "yes", "overall_experience": "extremely_helpful" },
+        "not_declined": ["staff_helpful"],
+        "not_asked": ["no_review_reason"]
+      },
+      "why": [
+        "'Oh yes, very much so. They were always patient and clear with me.' is a yes",
+        "reinforced with praise. The praise is context, not a second survey answer.",
+        "",
+        "staff_helpful is the only yes/no question exclusive to high-risk members. This",
+        "is its dedicated ambiguous-elaboration test, confirming the fix applies to the",
+        "gate-guarded question as well as the open ones."
+      ]
+    },
+    {
+      "id": "trailing_fragment_at_would_recommend",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-056", "language": "en-US" },
+        "policyholder": { "first_name": "Helen", "last_name": "Carey", "risk_tier": "rising" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, that's me.",
+        "participation_consent": "Yes, fine.",
+        "reviewed_resources": "Yes, I looked at some.",
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "Nothing comes to mind.",
+        "liked_most": "The information was easy to understand.",
+        "would_recommend": ["I suppose I—", "Yes, I would."],
+        "overall_experience": "Somewhat helpful.",
+        "staff_helpful": "THIS MUST NEVER BE ASKED",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": { "would_recommend": "yes" },
+        "not_declined": ["would_recommend"],
+        "not_asked": ["staff_helpful", "no_review_reason"]
+      },
+      "why": [
+        "Trailing fragment ('I suppose I—') at would_recommend then a clear answer on",
+        "the re-ask. Covers the second yes/no survey question beyond reviewed_resources.",
+        "",
+        "Rising-tier member so the call is shorter and the fragment is the only",
+        "complexity — isolating the trailing-fragment behaviour on this slot without",
+        "any other unusual turn."
+      ]
+    },
+    {
+      "id": "all_yes_no_slots_with_elaboration",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-057", "language": "en-US" },
+        "policyholder": { "first_name": "Margaret", "last_name": "Ellison", "risk_tier": "high" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, I've got a few minutes — go ahead.",
+        "reviewed_resources": "Oh, yes. A few of the articles, mainly.",
+        "resource_helpfulness": "Extremely helpful.",
+        "improvement_feedback": "Nothing I can think of.",
+        "liked_most": "The nurse was wonderful with me.",
+        "would_recommend": "Yes, definitely. It made a real difference to how I manage things.",
+        "staff_helpful": "Yes, absolutely. Always available and very knowledgeable.",
+        "overall_experience": "Extremely helpful.",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": {
+          "reviewed_resources": "yes",
+          "resource_helpfulness": "extremely_helpful",
+          "would_recommend": "yes",
+          "staff_helpful": "yes",
+          "overall_experience": "extremely_helpful"
+        },
+        "not_declined": ["reviewed_resources", "would_recommend", "staff_helpful"],
+        "not_asked": ["no_review_reason"]
+      },
+      "why": [
+        "Every yes/no survey question carries elaboration in the same call. This is the",
+        "broadest test of the fix: none of the three yes/no slots (reviewed_resources,",
+        "would_recommend, staff_helpful) may trigger a retry or appear as declined.",
+        "",
+        "participation_consent also carries a qualifier ('I've got a few minutes') to",
+        "confirm the gate slot survives the same pattern without breaking. The whole",
+        "survey must complete with all answers recorded correctly."
+      ]
+    },
+    {
+      "id": "trailing_fragment_at_no_review_reason",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-058", "language": "en-US" },
+        "policyholder": { "first_name": "Dorothy", "last_name": "Marsh", "risk_tier": "high" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, alright.",
+        "reviewed_resources": "No, I'm afraid I never got round to them.",
+        "resource_helpfulness": "THIS MUST NEVER BE ASKED",
+        "no_review_reason": ["I suppose it was mainly—", "No time, really. Things have been hectic."],
+        "improvement_feedback": "More reminders to look at the resources would be useful.",
+        "liked_most": "The phone calls with the nurse were very helpful.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful."
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": { "reviewed_resources": "no", "no_review_reason": "no_time" },
+        "not_declined": ["no_review_reason"],
+        "not_asked": ["resource_helpfulness"],
+        "skipped": ["resource_helpfulness"]
+      },
+      "why": [
+        "Trailing fragment ('I suppose it was mainly—') at no_review_reason, the choice",
+        "question on the no-resources branch, followed by a clear answer on re-ask.",
+        "",
+        "This is the only scenario that exercises the trailing-fragment pattern on the",
+        "no_review_reason slot. It confirms the fix applies to a choice question on the",
+        "less-travelled branch: the fragment must not be guessed into an option, the",
+        "agent re-asks, and 'No time, really' maps to no_time on the second attempt.",
+        "no_review_reason must not appear as declined."
+      ]
+    },
+    {
+      "id": "reschedule_at_first_question_with_datetime",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-059", "language": "en-US" },
+        "policyholder": { "first_name": "Ivy", "last_name": "Marsden", "risk_tier": "rising" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, hello.",
+        "participation_consent": "Yes, go ahead.",
+        "reviewed_resources": "Actually, something has just come up — I need to go. Could you call me back tomorrow afternoon, around two?",
+        "reschedule_datetime": "Tomorrow around two in the afternoon.",
+        "resource_helpfulness": "THIS MUST NEVER BE ASKED",
+        "no_review_reason": "THIS MUST NEVER BE ASKED",
+        "improvement_feedback": "THIS MUST NEVER BE ASKED",
+        "liked_most": "THIS MUST NEVER BE ASKED",
+        "would_recommend": "THIS MUST NEVER BE ASKED",
+        "staff_helpful": "THIS MUST NEVER BE ASKED",
+        "overall_experience": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "reschedule_requested",
+        "not_asked": [
+          "resource_helpfulness",
+          "no_review_reason",
+          "improvement_feedback",
+          "liked_most",
+          "would_recommend",
+          "overall_experience"
+        ]
+      },
+      "why": [
+        "Reschedule requested at the very first survey question, with a datetime offered in",
+        "the same turn. Consent was given, the survey started, but before any answer is",
+        "recorded the member asks to be called back.",
+        "",
+        "The turn must not be read as an answer to reviewed_resources. The call must end",
+        "immediately as reschedule_requested without recording any survey answer."
+      ]
+    },
+    {
+      "id": "reschedule_at_first_question_no_datetime",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-060", "language": "en-US" },
+        "policyholder": { "first_name": "Gordon", "last_name": "Reeve", "risk_tier": "high" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, that's me.",
+        "participation_consent": "Yes, alright.",
+        "reviewed_resources": "I'm afraid I can't talk right now. Could we reschedule this call for another time?",
+        "reschedule_datetime": "Thursday morning, around ten.",
+        "resource_helpfulness": "THIS MUST NEVER BE ASKED",
+        "no_review_reason": "THIS MUST NEVER BE ASKED",
+        "improvement_feedback": "THIS MUST NEVER BE ASKED",
+        "liked_most": "THIS MUST NEVER BE ASKED",
+        "would_recommend": "THIS MUST NEVER BE ASKED",
+        "staff_helpful": "THIS MUST NEVER BE ASKED",
+        "overall_experience": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "reschedule_requested",
+        "not_asked": [
+          "resource_helpfulness",
+          "no_review_reason",
+          "improvement_feedback",
+          "liked_most",
+          "would_recommend",
+          "overall_experience"
+        ]
+      },
+      "why": [
+        "Reschedule requested at the first survey question without a datetime in the same",
+        "turn. The agent must ask for a callback time, accept the answer, then close as",
+        "reschedule_requested.",
+        "",
+        "Two-turn reschedule path mid-survey: the reschedule request is on the question",
+        "turn, and the datetime arrives on the next turn when asked."
+      ]
+    },
+    {
+      "id": "emphatic_no_reschedule_with_datetime",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-061", "language": "en-US" },
+        "policyholder": { "first_name": "Margaret", "last_name": "Ellison", "risk_tier": "high" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, go ahead.",
+        "reviewed_resources": "No. No. I'm telling you. I'm busy right now. Just reschedule this maybe tomorrow at two PM, I'll be free. Just call me then.",
+        "reschedule_datetime": "Tomorrow at two PM.",
+        "resource_helpfulness": "THIS MUST NEVER BE ASKED",
+        "no_review_reason": "THIS MUST NEVER BE ASKED",
+        "improvement_feedback": "THIS MUST NEVER BE ASKED",
+        "liked_most": "THIS MUST NEVER BE ASKED",
+        "would_recommend": "THIS MUST NEVER BE ASKED",
+        "staff_helpful": "THIS MUST NEVER BE ASKED",
+        "overall_experience": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "reschedule_requested",
+        "answers": {},
+        "not_asked": [
+          "resource_helpfulness",
+          "no_review_reason",
+          "improvement_feedback",
+          "liked_most",
+          "would_recommend",
+          "staff_helpful",
+          "overall_experience"
+        ]
+      },
+      "why": [
+        "The exact transcript scenario: the member says 'No. No. I'm busy right now. Just",
+        "reschedule this maybe tomorrow at two PM' at the first survey question.",
+        "",
+        "Two failures must not happen. First: the repeated 'No' must NOT be recorded as",
+        "the answer to reviewed_resources — it is emphatic frustration at being asked,",
+        "not a survey answer. Second: the call must not re-ask the question; the reschedule",
+        "request must be honoured immediately.",
+        "",
+        "Expected outcome: reschedule_requested, no survey answers recorded at all."
+      ]
+    },
+    {
+      "id": "reschedule_mid_survey_prior_answers_kept",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-062", "language": "en-US" },
+        "policyholder": { "first_name": "Margaret", "last_name": "Ellison", "risk_tier": "high" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, that's fine.",
+        "reviewed_resources": "Yes, I did look at some of the articles.",
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "I need to stop now, I'm sorry — something urgent has come up. Could you call me back next Monday morning?",
+        "reschedule_datetime": "Monday morning.",
+        "liked_most": "THIS MUST NEVER BE ASKED",
+        "would_recommend": "THIS MUST NEVER BE ASKED",
+        "staff_helpful": "THIS MUST NEVER BE ASKED",
+        "overall_experience": "THIS MUST NEVER BE ASKED",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "reschedule_requested",
+        "answers": {
+          "reviewed_resources": "yes",
+          "resource_helpfulness": "somewhat_helpful"
+        },
+        "not_asked": [
+          "liked_most",
+          "would_recommend",
+          "staff_helpful",
+          "overall_experience",
+          "no_review_reason"
+        ]
+      },
+      "why": [
+        "Reschedule requested mid-survey after two questions are already answered. The",
+        "call must stop where it is — not continue, not discard what was already said.",
+        "",
+        "reviewed_resources and resource_helpfulness must both survive in the outcome.",
+        "No question after the reschedule request may be asked. The disposition is",
+        "reschedule_requested, not partially_surveyed."
+      ]
+    },
+    {
+      "id": "reschedule_late_in_survey_answers_kept",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-063", "language": "en-US" },
+        "policyholder": { "first_name": "Helen", "last_name": "Carey", "risk_tier": "high" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, that's me.",
+        "participation_consent": "Yes, fine.",
+        "reviewed_resources": "Yes, I had a look at a few.",
+        "resource_helpfulness": "Extremely helpful.",
+        "improvement_feedback": "More regular check-ins would be nice.",
+        "liked_most": "The nurse was wonderful.",
+        "would_recommend": "Sorry, something urgent has just come up. Can you ring me back next Tuesday at eleven?",
+        "reschedule_datetime": "Next Tuesday at eleven.",
+        "staff_helpful": "THIS MUST NEVER BE ASKED",
+        "overall_experience": "THIS MUST NEVER BE ASKED",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "reschedule_requested",
+        "answers": {
+          "reviewed_resources": "yes",
+          "resource_helpfulness": "extremely_helpful"
+        },
+        "not_asked": [
+          "staff_helpful",
+          "overall_experience",
+          "no_review_reason"
+        ]
+      },
+      "why": [
+        "Reschedule near the end of the survey: four questions answered before the member",
+        "asks to stop. All four answers must survive in the outcome.",
+        "",
+        "The 'sorry something urgent has come up' phrasing is the same as a CLOSING but",
+        "the reschedule request must take precedence over END_UNINTERESTED. The call",
+        "ends as reschedule_requested, not uninterested."
+      ]
+    },
+    {
+      "id": "emphatic_no_redirect_to_service_query_then_answers",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-064", "language": "en-US" },
+        "policyholder": { "first_name": "Margaret", "last_name": "Ellison", "risk_tier": "high" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, alright.",
+        "reviewed_resources": [
+          "No. No. I'm not looking for that. I want to know more about my plan details.",
+          "Yes, I did look through some of the articles."
+        ],
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "Nothing comes to mind.",
+        "liked_most": "The articles were clear.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful.",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": {
+          "reviewed_resources": "yes",
+          "resource_helpfulness": "somewhat_helpful"
+        },
+        "not_declined": [
+          "reviewed_resources"
+        ],
+        "reported_intents": [
+          "unsupported"
+        ],
+        "not_asked": [
+          "no_review_reason"
+        ]
+      },
+      "why": [
+        "The user's exact reported scenario: 'No. No. I'm not looking for that, I want to",
+        "know details about my plan.' The repeated 'No' is an emphatic redirect — the",
+        "member is not answering reviewed_resources, they are stopping the caller to ask",
+        "about something else.",
+        "",
+        "Three things must hold: the 'no' is not recorded as reviewed_resources (the",
+        "question is re-asked), the plan query is acknowledged as something this call",
+        "cannot action and reported as unsupported, and the 'yes' that arrives on the",
+        "second attempt lands correctly. reviewed_resources must not appear as declined."
+      ]
+    },
+    {
+      "id": "emphatic_yes_redirect_to_claim_query_then_answers",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-065", "language": "en-US" },
+        "policyholder": { "first_name": "Alan", "last_name": "Whitfield", "risk_tier": "rising" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, that's me.",
+        "participation_consent": "Yes, go ahead.",
+        "reviewed_resources": [
+          "Yes. Yes. I know. But I've been waiting three months for someone to call me back about a claim — nobody has rung.",
+          "Yes, I did go through some of the articles."
+        ],
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "Nothing I can think of.",
+        "liked_most": "The information was easy to follow.",
+        "would_recommend": "Yes.",
+        "overall_experience": "Somewhat helpful.",
+        "staff_helpful": "THIS MUST NEVER BE ASKED",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": {
+          "reviewed_resources": "yes",
+          "resource_helpfulness": "somewhat_helpful"
+        },
+        "not_declined": [
+          "reviewed_resources"
+        ],
+        "reported_intents": [
+          "unsupported"
+        ],
+        "not_asked": [
+          "staff_helpful",
+          "no_review_reason"
+        ]
+      },
+      "why": [
+        "The 'yes yes' emphatic redirect: the member says 'Yes. Yes. I know. But I've been",
+        "waiting about a claim.' The repeated 'Yes' is impatience directed at the caller",
+        "('yes yes I heard you'), not an answer to whether they reviewed the resources.",
+        "",
+        "The claim query is the member services entry that must reach the outcome.",
+        "reviewed_resources must be re-asked; on the second attempt 'yes' lands correctly.",
+        "reviewed_resources must not appear as declined.",
+        "",
+        "Rising-tier member confirms staff_helpful is never asked and unsupported intent",
+        "reporting works on a different tier."
+      ]
+    },
+    {
+      "id": "emphatic_no_redirect_at_choice_question_then_answers",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-066", "language": "en-US" },
+        "policyholder": { "first_name": "Dorothy", "last_name": "Marsh", "risk_tier": "high" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, that's fine.",
+        "reviewed_resources": "Yes, I had a look through a few.",
+        "resource_helpfulness": [
+          "No. No. I don't want to rate that. I want to know why my portal account never worked — I could never log in.",
+          "Somewhat helpful."
+        ],
+        "improvement_feedback": "More regular phone calls would help.",
+        "liked_most": "The nurse was very kind.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful.",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": {
+          "reviewed_resources": "yes",
+          "resource_helpfulness": "somewhat_helpful"
+        },
+        "not_declined": [
+          "resource_helpfulness"
+        ],
+        "reported_intents": [
+          "unsupported"
+        ],
+        "not_asked": [
+          "no_review_reason"
+        ]
+      },
+      "why": [
+        "Emphatic 'No. No.' redirect at a choice question rather than a yes/no question.",
+        "The member uses 'No. No. I don't want to rate that' to interrupt and raise a",
+        "portal access complaint — the 'no' is not a rating for resource_helpfulness.",
+        "",
+        "The portal complaint is an unsupported service query and must reach the outcome.",
+        "resource_helpfulness must be re-asked; 'Somewhat helpful' on the second attempt",
+        "must land. resource_helpfulness must not appear as declined.",
+        "",
+        "Confirms the emphatic-redirect detection is not limited to yes_no slots."
+      ]
+    },
+    {
+      "id": "emphatic_no_ends_survey_mid_call",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-067", "language": "en-US" },
+        "policyholder": { "first_name": "Margaret", "last_name": "Ellison", "risk_tier": "high" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, speaking.",
+        "participation_consent": "Yes, alright.",
+        "reviewed_resources": "Yes, I looked at some of them.",
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "No. No. I've had enough of this survey now. Just end the call, please.",
+        "liked_most": "THIS MUST NEVER BE ASKED",
+        "would_recommend": "THIS MUST NEVER BE ASKED",
+        "staff_helpful": "THIS MUST NEVER BE ASKED",
+        "overall_experience": "THIS MUST NEVER BE ASKED",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "uninterested",
+        "answers": {
+          "reviewed_resources": "yes",
+          "resource_helpfulness": "somewhat_helpful"
+        },
+        "not_asked": [
+          "liked_most",
+          "would_recommend",
+          "staff_helpful",
+          "overall_experience",
+          "no_review_reason"
+        ]
+      },
+      "why": [
+        "Emphatic 'No. No.' that ends the call rather than redirecting. 'No. No. I've had",
+        "enough of this survey now. Just end the call, please.' is an explicit refusal to",
+        "continue — not a reschedule request, not a service query.",
+        "",
+        "This is the contrast case for emphatic_no_reschedule_with_datetime and the",
+        "redirect scenarios: the same emphatic 'No. No.' phrasing must produce",
+        "END_UNINTERESTED here because the content that follows ('end the call') is a",
+        "termination, not a question or a reschedule.",
+        "",
+        "Answers from before the refusal must be kept. Nothing after it may be asked."
+      ]
+    },
+    {
+      "id": "emphatic_no_reschedule_at_consent_with_datetime",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-068", "language": "en-US" },
+        "policyholder": { "first_name": "Ivy", "last_name": "Marsden", "risk_tier": "rising" }
+      },
+      "replies": {
+        "reached_policyholder": "Yes, hello.",
+        "participation_consent": "No. No. Not right now — I'm really tied up. Can you reschedule for Friday at two PM?",
+        "wants_reschedule": "THIS MUST NEVER BE ASKED",
+        "reschedule_datetime": "Friday at two PM.",
+        "reviewed_resources": "THIS MUST NEVER BE ASKED",
+        "resource_helpfulness": "THIS MUST NEVER BE ASKED",
+        "no_review_reason": "THIS MUST NEVER BE ASKED",
+        "improvement_feedback": "THIS MUST NEVER BE ASKED",
+        "would_recommend": "THIS MUST NEVER BE ASKED",
+        "overall_experience": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "reschedule_requested",
+        "not_asked": [
+          "wants_reschedule",
+          "reviewed_resources",
+          "resource_helpfulness",
+          "no_review_reason",
+          "improvement_feedback",
+          "would_recommend",
+          "overall_experience"
+        ]
+      },
+      "why": [
+        "Emphatic 'No. No.' reschedule request at the consent turn, with a datetime in the",
+        "same breath. The member is not simply declining consent — they are asking to be",
+        "called back at a specific time.",
+        "",
+        "The key assertion: wants_reschedule (the spec slot the agent would normally ask",
+        "after a plain consent decline) must NEVER be asked. The reschedule request is",
+        "detected directly from the member's turn and the call closes as reschedule_",
+        "requested without going through the 'would you like to reschedule?' offer.",
+        "",
+        "This confirms the fix applies at the consent gate, not just mid-survey, and that",
+        "a datetime offered in the reschedule turn reaches the outcome without a second ask."
+      ]
+    },
+    {
+      "id": "bare_speaking_confirms_identity_first_try",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-069", "language": "en-US" },
+        "policyholder": { "first_name": "Margaret", "last_name": "Ellison", "risk_tier": "high" }
+      },
+      "replies": {
+        "reached_policyholder": "Speaking.",
+        "participation_consent": "Yes, go on.",
+        "reviewed_resources": "Yes, some of the articles.",
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "Nothing really.",
+        "liked_most": "The articles were clear enough.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful.",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": {
+          "reviewed_resources": "yes",
+          "resource_helpfulness": "somewhat_helpful"
+        },
+        "not_asked": [
+          "no_review_reason"
+        ]
+      },
+      "why": [
+        "The regression this scenario exists to catch: a bare 'Speaking.' with no",
+        "literal 'yes' anywhere in it, given as the very first reply to 'May I speak",
+        "to Margaret Ellison?'.",
+        "",
+        "'Speaking' is the standard phone idiom for confirming identity when asked for",
+        "by name — there is no separate yes/no question being answered, the reply IS",
+        "the answer. A version of the extractor that requires a literal affirmative",
+        "word never records reached_policyholder from this turn, identity never",
+        "confirms, and the greeting is put again in slightly different words — which",
+        "reads, in a transcript, as the agent not having heard the member the first",
+        "time.",
+        "",
+        "This is deliberately a single-string reply, not a list: if the gate does not",
+        "settle on the first turn, the script has nothing further to offer and the call",
+        "either loops until max_identity_asks is spent (surfacing as",
+        "representative_requested, not surveyed) or exhausts MAX_TURNS. Either failure",
+        "mode is caught by the disposition assertion alone."
+      ]
+    },
+    {
+      "id": "this_is_she_confirms_identity_first_try",
+      "payload": {
+        "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+        "call_context": { "call_id": "mct-live-070", "language": "en-US" },
+        "policyholder": { "first_name": "Margaret", "last_name": "Ellison", "risk_tier": "high" }
+      },
+      "replies": {
+        "reached_policyholder": "This is she.",
+        "participation_consent": "Yes, that's fine.",
+        "reviewed_resources": "Yes, I looked at a few.",
+        "resource_helpfulness": "Somewhat helpful.",
+        "improvement_feedback": "Nothing comes to mind.",
+        "liked_most": "The nurse was very patient with me.",
+        "would_recommend": "Yes.",
+        "staff_helpful": "Yes.",
+        "overall_experience": "Somewhat helpful.",
+        "no_review_reason": "THIS MUST NEVER BE ASKED"
+      },
+      "expect": {
+        "disposition": "surveyed",
+        "answers": {
+          "reviewed_resources": "yes",
+          "resource_helpfulness": "somewhat_helpful"
+        },
+        "not_asked": [
+          "no_review_reason"
+        ]
+      },
+      "why": [
+        "The other idiom nobody says 'yes' in: 'This is she', with no affirmative word",
+        "and no first-person pronoun either — the whole sentence identifies the speaker",
+        "only by the pronoun that stands in for the name just asked for.",
+        "",
+        "Paired with bare_speaking_confirms_identity_first_try rather than merged with",
+        "it, because the two idioms fail independently: a fix that special-cases the",
+        "single word 'speaking' would still leave this one repeating the greeting."
       ]
     }
   ]

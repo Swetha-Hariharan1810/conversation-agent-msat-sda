@@ -32,7 +32,9 @@ from .transcript import Recorder, TestTranscript
 
 def pytest_runtest_setup(item: pytest.Item) -> None:
     if not env.enabled():
-        pytest.skip(f"live tests are opt-in — set {env.FLAG}=1 to run them against a real provider")
+        pytest.skip(
+            f"live tests are opt-in — set {env.FLAG}=1 to run them against a real provider"
+        )
     absent = env.missing()
     if absent:
         pytest.skip(
@@ -119,7 +121,9 @@ def pytest_sessionfinish(session, exitstatus):
     if directory is not None:
         reporter = session.config.pluginmanager.get_plugin("terminalreporter")
         if reporter is not None:
-            reporter.write_line(f"\nconversations written to {directory} (see index.md)")
+            reporter.write_line(
+                f"\nconversations written to {directory} (see index.md)"
+            )
             # The latency baseline, on the terminal as well as in index.md: the
             # question it answers — which of a turn's three calls the member is
             # waiting on — is one nobody thinks to go and look up.

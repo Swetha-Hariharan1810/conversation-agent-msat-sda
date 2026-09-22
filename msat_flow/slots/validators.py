@@ -57,7 +57,11 @@ def validate_feedback_text(value: str) -> Result:
 
 
 def validate_person_name(value: str) -> Result:
-    return OK if re.fullmatch(r"[A-Za-z'\-]+(?: [A-Za-z'\-]+)*", value or "") else _fail("not a name")
+    return (
+        OK
+        if re.fullmatch(r"[A-Za-z'\-]+(?: [A-Za-z'\-]+)*", value or "")
+        else _fail("not a name")
+    )
 
 
 def validate(declared: SlotSpec, value: str) -> Result:
@@ -69,4 +73,6 @@ def validate(declared: SlotSpec, value: str) -> Result:
         return validate_feedback_text(value)
     if declared.type is SlotType.PERSON_NAME:
         return validate_person_name(value)
-    raise ValueError(f"no validator for slot type {declared.type!r}")  # pragma: no cover
+    raise ValueError(
+        f"no validator for slot type {declared.type!r}"
+    )  # pragma: no cover

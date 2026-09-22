@@ -15,7 +15,9 @@ from enum import StrEnum
 class IntentKind(StrEnum):
     CORRECTION = "correction"  # member revised an answer they already gave
     SIDE_REQUEST = "side_request"  # member asked us for something
-    UNSUPPORTED = "unsupported"  # about their policy or the program, not this call's job
+    UNSUPPORTED = (
+        "unsupported"  # about their policy or the program, not this call's job
+    )
     CLARIFICATION = "clarification"  # a question about the question we just put
     OFF_TOPIC = "off_topic"  # a remark that asks nothing of us
 
@@ -85,22 +87,29 @@ def unfinished(intents: list[dict]) -> list[dict]:
     return [
         intent
         for intent in intents or []
-        if intent.get("status") in (IntentStatus.OPEN.value, IntentStatus.ACKNOWLEDGED.value)
+        if intent.get("status")
+        in (IntentStatus.OPEN.value, IntentStatus.ACKNOWLEDGED.value)
     ]
 
 
-def open_intents(intents: list[dict], *, kinds: frozenset[str] | None = None) -> list[dict]:
+def open_intents(
+    intents: list[dict], *, kinds: frozenset[str] | None = None
+) -> list[dict]:
     return [
         intent
         for intent in intents or []
-        if intent.get("status") == IntentStatus.OPEN.value and (kinds is None or intent.get("kind") in kinds)
+        if intent.get("status") == IntentStatus.OPEN.value
+        and (kinds is None or intent.get("kind") in kinds)
     ]
 
 
-def mark(intents: list[dict], *, kinds: frozenset[str], status: IntentStatus) -> list[dict]:
+def mark(
+    intents: list[dict], *, kinds: frozenset[str], status: IntentStatus
+) -> list[dict]:
     return [
         {**intent, "status": status.value}
-        if intent.get("kind") in kinds and intent.get("status") == IntentStatus.OPEN.value
+        if intent.get("kind") in kinds
+        and intent.get("status") == IntentStatus.OPEN.value
         else intent
         for intent in intents or []
     ]

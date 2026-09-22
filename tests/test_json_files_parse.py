@@ -25,7 +25,9 @@ SEARCH = ("*.json", "data/*.json", "tests/live/scenarios/*.json", ".github/**/*.
 
 
 def _json_files() -> list[Path]:
-    found = {path for pattern in SEARCH for path in REPO_ROOT.glob(pattern) if path.is_file()}
+    found = {
+        path for pattern in SEARCH for path in REPO_ROOT.glob(pattern) if path.is_file()
+    }
     return sorted(found)
 
 
@@ -37,7 +39,11 @@ def test_it_parses(path: Path):
     try:
         json.loads(text)
     except json.JSONDecodeError as exc:
-        line = text.splitlines()[exc.lineno - 1] if exc.lineno <= len(text.splitlines()) else ""
+        line = (
+            text.splitlines()[exc.lineno - 1]
+            if exc.lineno <= len(text.splitlines())
+            else ""
+        )
         pytest.fail(
             f"{path.relative_to(REPO_ROOT)} is not valid JSON: {exc.msg} at line {exc.lineno}.\n"
             f"  the line reads: {line.strip()[:120]}\n"
