@@ -1,7 +1,7 @@
-
-The interface for it will probably be different. The sample code is the python API that they have but I'm putting together a different API to use onnx/openvino and directly taking a pydantic model in.
- 
-So what I have should be closer to a drop-in replacement for VA
- 
-replacement isn't the right word, but I mean you should be able to reuse your exact schema as long as you use Field(...,description="...")
- 
+{
+  "dependencies": ["."],
+  "python_version": "3.13",
+  "graphs": {"agent": "msat_flow.app_graph:graph"},
+  "env": ".env",
+  "image_distro": "wolfi"
+}
