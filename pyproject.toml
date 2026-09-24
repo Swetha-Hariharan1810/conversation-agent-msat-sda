@@ -15,6 +15,7 @@ dependencies = [
   "langgraph-cli[inmem]>=0.2.0,<1.0.0",
   "httpx>=0.28.1,<1.0.0",
   "typing-extensions>=4.16.0,<5.0.0",
+  "pydantic-settings>=2.6.0,<3.0.0",
 ]
 
 [dependency-groups]
@@ -22,6 +23,8 @@ dev = [
     "pytest>=9.1.1,<10.0.0",
     "pytest-asyncio>=1.4.0,<2.0.0",
     "deptry>=0.25.1,<1.0.0",
+    "ruff>=0.13.0",
+    "mypy>=1.18.0",
 ]
 
 # The package must be installable for `langgraph dev` to load the graph: the
@@ -34,10 +37,20 @@ build-backend = "setuptools.build_meta"
 # Without this, setuptools' flat-layout autodiscovery treats data/, scripts/ and
 # tests/ as packages and refuses to build. Only the runtime package ships.
 [tool.setuptools.packages.find]
-include = ["msat_flow*"]
+include = ["msat_flow*", "survey_agent*"]
 
 [tool.ruff]
 force-exclude = true
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "ASYNC"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+plugins = ["pydantic.mypy"]
+packages = ["survey_agent"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

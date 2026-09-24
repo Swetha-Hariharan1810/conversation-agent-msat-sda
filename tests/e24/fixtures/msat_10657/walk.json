@@ -1,0 +1,336 @@
+{
+ "_readme": [
+  "Reconstructed from docs/e24/SCRIPT_EXPLAINED_README.md (UAT run, algorithm 10657).",
+  "Ids, node numbers, text and options are from that run; fields it elided are omitted.",
+  "ControlType for text nodes is a best reading. Replace with a real --save capture when available."
+ ],
+ "start": {
+  "Table": [
+   {
+    "TraversalID": "cd6ed911-5ba5-40ac-a72d-ad3650516b50",
+    "MemberID": "1492375"
+   }
+  ]
+ },
+ "first": {
+  "AlgoID": 10657,
+  "AlgoName": "Healthy Aging Member Satisfaction Survey",
+  "NodeID": 487,
+  "Questions": [
+   {
+    "DisplayText": "Please tell us about your experiences with the Smart Step Aging in Place service by completing a short satisfaction survey.",
+    "Answers": []
+   }
+  ]
+ },
+ "next": [
+  {
+   "node": 487,
+   "body": {},
+   "response": {
+    "AlgoID": 10657,
+    "AlgoName": "Healthy Aging Member Satisfaction Survey",
+    "NodeID": 908,
+    "Questions": [
+     {
+      "DisplayText": "Were you able to review any of the program resources such as action plans, articles, videos, or websites?",
+      "Answers": [
+       {
+        "Index": "1",
+        "DisplayText": "Yes",
+        "ControlType": "radio"
+       },
+       {
+        "Index": "2",
+        "DisplayText": "No",
+        "ControlType": "radio"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "node": 908,
+   "body": {
+    "1": ""
+   },
+   "response": {
+    "AlgoID": 10657,
+    "AlgoName": "Healthy Aging Member Satisfaction Survey",
+    "NodeID": 863,
+    "Questions": [
+     {
+      "DisplayText": "How helpful were the resources, articles, or websites in making at least one lifestyle change?",
+      "Answers": [
+       {
+        "Index": "1",
+        "DisplayText": "Extremely Helpful",
+        "ControlType": "radio"
+       },
+       {
+        "Index": "2",
+        "DisplayText": "Somewhat Helpful",
+        "ControlType": "radio"
+       },
+       {
+        "Index": "3",
+        "DisplayText": "Not Very Helpful",
+        "ControlType": "radio"
+       },
+       {
+        "Index": "4",
+        "DisplayText": "Definitely Not Helpful",
+        "ControlType": "radio"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "node": 863,
+   "body": {
+    "1": ""
+   },
+   "response": {
+    "AlgoID": 10657,
+    "AlgoName": "Healthy Aging Member Satisfaction Survey",
+    "NodeID": 903,
+    "Questions": [
+     {
+      "DisplayText": "Please tell us what you liked most about the program. If you don&rsquo;t have feedback, please enter <b>no</b> or <b>none</b>.",
+      "Answers": [
+       {
+        "Index": "1",
+        "DisplayText": "",
+        "ControlType": "textbox",
+        "ControlSubType": "text"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "node": 903,
+   "body": {
+    "1": "dscvds"
+   },
+   "response": {
+    "AlgoID": 10657,
+    "AlgoName": "Healthy Aging Member Satisfaction Survey",
+    "NodeID": 955,
+    "Questions": [
+     {
+      "DisplayText": "We value your feedback! What changes or additions would you like to see to improve the program?",
+      "Answers": [
+       {
+        "Index": "1",
+        "DisplayText": "",
+        "ControlType": "textbox",
+        "ControlSubType": "text"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "node": 955,
+   "body": {
+    "1": "gfgd"
+   },
+   "response": {
+    "AlgoID": 10657,
+    "AlgoName": "Healthy Aging Member Satisfaction Survey",
+    "NodeID": 966,
+    "Questions": [
+     {
+      "DisplayText": "Based on your experience with the Smart Step Aging in Place Program, would you recommend our program to people you know?",
+      "Answers": [
+       {
+        "Index": "1",
+        "DisplayText": "Yes",
+        "ControlType": "radio"
+       },
+       {
+        "Index": "2",
+        "DisplayText": "No",
+        "ControlType": "radio"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "node": 966,
+   "body": {
+    "1": ""
+   },
+   "response": {
+    "AlgoID": 10657,
+    "AlgoName": "Healthy Aging Member Satisfaction Survey",
+    "NodeID": 889,
+    "Questions": [
+     {
+      "DisplayText": "Action is looking for collection of Risk Level of 3 for this member.",
+      "Answers": [
+       {
+        "Index": "1",
+        "DisplayText": "Yes",
+        "ControlType": "radio"
+       },
+       {
+        "Index": "2",
+        "DisplayText": "No",
+        "ControlType": "radio"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "node": 889,
+   "body": {
+    "1": ""
+   },
+   "response": {
+    "AlgoID": 10657,
+    "AlgoName": "Healthy Aging Member Satisfaction Survey",
+    "NodeID": 894,
+    "Questions": [
+     {
+      "DisplayText": "Were program staff helpful and knowledgeable about the program and in guiding you through your action plan?",
+      "Answers": [
+       {
+        "Index": "1",
+        "DisplayText": "Yes",
+        "ControlType": "radio"
+       },
+       {
+        "Index": "2",
+        "DisplayText": "No",
+        "ControlType": "radio"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "node": 894,
+   "body": {
+    "1": ""
+   },
+   "response": {
+    "AlgoID": 10657,
+    "AlgoName": "Healthy Aging Member Satisfaction Survey",
+    "NodeID": 881,
+    "Questions": [
+     {
+      "DisplayText": "How would you rate your experience with the program overall?",
+      "Answers": [
+       {
+        "Index": "1",
+        "DisplayText": "Extremely Helpful",
+        "ControlType": "radio"
+       },
+       {
+        "Index": "2",
+        "DisplayText": "Somewhat Helpful",
+        "ControlType": "radio"
+       },
+       {
+        "Index": "3",
+        "DisplayText": "Not Very Helpful",
+        "ControlType": "radio"
+       },
+       {
+        "Index": "4",
+        "DisplayText": "Definitely Not Helpful",
+        "ControlType": "radio"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "node": 881,
+   "body": {
+    "1": ""
+   },
+   "response": {
+    "AlgoID": 10657,
+    "AlgoName": "Healthy Aging Member Satisfaction Survey",
+    "NodeID": 876,
+    "Questions": [
+     {
+      "DisplayText": "Thank you for answering our questions.",
+      "Answers": []
+     }
+    ]
+   }
+  },
+  {
+   "node": 876,
+   "body": {},
+   "response": {
+    "AlgoName": "",
+    "Conclusions": [
+     {
+      "Category": "Default",
+      "DisplayText": "2026.03.13.1"
+     }
+    ]
+   }
+  }
+ ],
+ "qa": {
+  "Table": [
+   {
+    "Question": "Please tell us about your experiences with the Smart Step Aging in Place service by completing a short satisfaction survey.",
+    "Answer": "Next &gt;"
+   },
+   {
+    "Question": "Were you able to review any of the program resources such as action plans, articles, videos, or websites?",
+    "Answer": "Yes"
+   },
+   {
+    "Question": "How helpful were the resources, articles, or websites in making at least one lifestyle change?",
+    "Answer": "Extremely Helpful"
+   },
+   {
+    "Question": "Please tell us what you liked most about the program. If you don&rsquo;t have feedback, please enter <b>no</b> or <b>none</b>.",
+    "SValue": "dscvds"
+   },
+   {
+    "Question": "We value your feedback! What changes or additions would you like to see to improve the program?",
+    "SValue": "gfgd"
+   },
+   {
+    "Question": "Based on your experience with the Smart Step Aging in Place Program, would you recommend our program to people you know?",
+    "Answer": "Yes"
+   },
+   {
+    "Question": "Action is looking for collection of Risk Level of 3 for this member.",
+    "Answer": "Yes"
+   },
+   {
+    "Question": "Were program staff helpful and knowledgeable about the program and in guiding you through your action plan?",
+    "Answer": "Yes"
+   },
+   {
+    "Question": "How would you rate your experience with the program overall?",
+    "Answer": "Extremely Helpful"
+   },
+   {
+    "Question": "Thank you for answering our questions.",
+    "Answer": "Next &gt;"
+   }
+  ]
+ }
+}
