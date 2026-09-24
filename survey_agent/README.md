@@ -12,7 +12,7 @@ from Expert24 one node at a time.
 | Step | What | Status |
 |---|---|---|
 | 1 | Expert24 integration: settings, async client, models, adapters, errors | **done** |
-| 2 | Survey registry and per-survey config: algorithm id, input schema, prepop mapping, node rules | |
+| 2 | Survey registry and per-survey config: algorithm id, input schema, prepop mapping, node rules | **done** |
 | 3 | Extraction slots built from each E24 node; guard and extraction ported | |
 | 4 | Engine: conversation shell, E24 question loop, LangGraph boundary | |
 | 5 | Outcome from QA, observability, CI, container | |
@@ -41,6 +41,51 @@ qa        GET  /QA/{tid}                                -> QAResult
 
 Reference material for the API is in `docs/e24/`.
 
+## Surveys (`surveys/`, `catalog/`)
+
+A survey is a folder under `catalog/` with one `survey.yaml`; the registry finds
+it by `workflow_subtype`. Nothing is registered in code, and the whole catalogue
+is validated at startup, so a bad file fails the deploy rather than a call.
+
+A call's only input is the work item:
+
+```json
+{
+  "workflow_subtype": "MEMBER_SATISFACTION_SURVEY",
+  "member_id": "ABC_TMJarrett",
+  "prepop": {
+    "DOB": "2010-01-06",
+    "FallPrevRiskLevel": "No",
+    "Gender": "Male",
+    "FirstName": "Jarrett",
+    "source_application": "AgentPortal"
+  }
+}
+```
+
+`member_id` becomes Expert24's `@UserID`. `prepop` is checked against the
+survey's declared fields (type, required, choices, default) and sent as
+`Prepop` exactly as given — values are checked, never rewritten. Every problem
+is reported at once. Undeclared fields are forwarded (`extra: allow`) or refused
+(`extra: forbid`), per survey.
+
+`speak_values` names the work-item values the conversation may say
+(`first_name: prepop.FirstName`).
+
+`node_rules` cover the nodes that are not for the member. With no rule, a node
+with options is asked and a node with nothing to answer is spoken and passed.
+A rule matches on `node_id` and/or `text_contains` and can `speak`, pass
+`silent`ly, or `auto_answer` from the work item:
+
+```yaml
+node_rules:
+  - match: {node_id: "889"}
+    action: auto_answer
+    answer: {source: prepop.FallPrevRiskLevel, map: {"3": "Yes"}}
+```
+
+A survey file holds no question wording; that is Expert24's.
+
 ## Settings
 
 | Variable | Default | |
@@ -61,8 +106,8 @@ client change.
 ## Checks
 
 ```bash
-uv run pytest tests/e24
-uv run ruff check survey_agent tests/e24
+uv run pytest tests/e24 tests/surveys
+uv run ruff check survey_agent tests/e24 tests/surveys
 uv run mypy
 ```
 

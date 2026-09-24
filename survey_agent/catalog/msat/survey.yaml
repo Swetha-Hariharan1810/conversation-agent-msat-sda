@@ -1,0 +1,40 @@
+# Healthy Aging Member Satisfaction Survey (Smart Step Aging in Place).
+#
+# The questions, their options and their branching come from Expert24
+# algorithm 10657. Nothing below is question wording.
+
+workflow_subtype: MEMBER_SATISFACTION_SURVEY
+name: Healthy Aging Member Satisfaction Survey
+
+e24:
+  algorithm_id: "10657"
+  language: MEMBER
+
+# Sent to Expert24 as Prepop on /Member, exactly as the work item carries it.
+prepop:
+  extra: allow
+  fields:
+    FirstName:
+      description: Spoken in the introduction when asking for the policyholder.
+    DOB:
+      type: date
+    Gender: {}
+    FallPrevRiskLevel:
+      description: Fall prevention risk level; Expert24 branches on it.
+    source_application:
+      required: false
+      default: AgentPortal
+
+speak_values:
+  first_name: prepop.FirstName
+
+# Nodes that are not for the member. With no rule, a node is asked, and a node
+# with nothing to answer is spoken and passed.
+#
+# Open: node 889 ("Action is looking for collection of Risk Level of 3") is an
+# internal check that appeared in the UAT run made without Prepop. Whether it
+# still appears once FallPrevRiskLevel is sent, and if so how it maps, is to be
+# confirmed before it gets a rule.
+node_rules: []
+
+conversation: default
